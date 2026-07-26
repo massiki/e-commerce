@@ -10,6 +10,7 @@ use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -245,6 +246,32 @@ class CheckoutController extends Controller
         }
 
         session()->forget('coupon');
+
+        NotificationService::send('order_placed', "New order #{$order->invoice_number}", [
+            'order_id' => $order->id,
+            'invoice' => $order->invoice_number,
+            'total' => $order->total,
+            'payment_method' => $order->payment_method,
+        ]);
+
+        $order->load('items.product');
+        foreach ($order->items as $item) {
+            if ($item->product) {
+                $product = $item->product;
+                if ($product->stock === 0) {
+                    NotificationService::send('out_of_stock', "{$product->name} is out of stock", [
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                    ]);
+                } elseif ($product->stock <= 10) {
+                    NotificationService::send('low_stock', "{$product->name} stock is low ({$product->stock} left)", [
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'stock' => $product->stock,
+                    ]);
+                }
+            }
+        }
 
         return redirect()->route('customer.checkout.confirmation', $order->invoice_number);
     }

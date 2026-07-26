@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ReviewController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Customer\HomeController;
 use App\Http\Controllers\Customer\MidtransController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Customer\ProductController as CustomerProductController;
+use App\Http\Controllers\Customer\ReviewController as CustomerReviewController;
 use App\Http\Controllers\Customer\SearchController;
 use App\Http\Controllers\Customer\WishlistController;
 use App\Http\Controllers\ProfileController;
@@ -66,6 +68,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // settings
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [SettingController::class, 'update'])->name('settings.update');
+
+    // notifications
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
 });
 
 // customer
@@ -94,6 +100,9 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/checkout/{order:invoice_number}/confirmation', [CheckoutController::class, 'confirmation'])->name('checkout.confirmation');
+
+    // reviews
+    Route::post('/reviews', [CustomerReviewController::class, 'store'])->name('reviews.store');
 
     // orders
     Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\NotificationService;
 use Midtrans\Config;
 use Midtrans\Notification;
 
@@ -16,7 +17,7 @@ class MidtransController extends Controller
 
         $notif = new Notification;
 
-        $signature = hash('sha512', $notif->order_id.$notif->status_code.$notif->gross_amount.'.'.config('midtrans.server_key'));
+        $signature = hash('sha512', $notif->order_id.$notif->status_code.$notif->gross_amount.config('midtrans.server_key'));
         if ($signature !== $notif->signature_key) {
             return response()->json(['message' => 'Invalid signature'], 403);
         }
@@ -30,7 +31,7 @@ class MidtransController extends Controller
         $transactionStatus = $notif->transaction_status;
         $fraud = $notif->fraud_status;
 
-        if (in_array($transactionStatus, ['deny', 'cancel', 'expire'])) {
+        if ($transactionStatus === 'expire') {
             $order->load('items');
             foreach ($order->items as $item) {
                 if ($item->product) {
@@ -38,13 +39,36 @@ class MidtransController extends Controller
                 }
             }
             $order->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+
+            NotificationService::send('payment_expired', "Payment expired for order #{$order->invoice_number}", [
+                'order_id' => $order->id,
+                'invoice' => $order->invoice_number,
+            ]);
+        } elseif (in_array($transactionStatus, ['deny', 'cancel'])) {
+            $order->load('items');
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    $item->product->increment('stock', $item->quantity);
+                }
+            }
+            $order->update(['payment_status' => 'failed', 'status' => 'cancelled']);
+
+            NotificationService::send('payment_failed', "Payment failed for order #{$order->invoice_number}", [
+                'order_id' => $order->id,
+                'invoice' => $order->invoice_number,
+            ]);
+        } elseif ($transactionStatus === 'settlement') {
+            $order->update(['payment_status' => 'paid', 'status' => 'processing']);
+
+            NotificationService::send('payment_settlement', "Payment settled for order #{$order->invoice_number}", [
+                'order_id' => $order->id,
+                'invoice' => $order->invoice_number,
+            ]);
         } else {
             match (true) {
                 $transactionStatus === 'capture' && $fraud === 'accept' => $order->update(['payment_status' => 'paid', 'status' => 'processing']),
 
                 $transactionStatus === 'capture' && $fraud === 'challenge' => $order->update(['payment_status' => 'challenge']),
-
-                $transactionStatus === 'settlement' => $order->update(['payment_status' => 'paid', 'status' => 'processing']),
 
                 $transactionStatus === 'pending' => null,
 
