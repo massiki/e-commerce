@@ -142,12 +142,27 @@
     </div>
     <div class="header-grid">
 
+      @php
+        $notifIcons = [
+            'order_placed' => ['item' => 'item-1', 'icon' => 'icon-noti-1'],
+            'payment_settlement' => ['item' => 'item-2', 'icon' => 'icon-noti-2'],
+            'payment_failed' => ['item' => 'item-3', 'icon' => 'icon-noti-3'],
+            'payment_expired' => ['item' => 'item-4', 'icon' => 'icon-noti-4'],
+            'low_stock' => ['item' => 'item-1', 'icon' => 'icon-noti-1'],
+            'out_of_stock' => ['item' => 'item-3', 'icon' => 'icon-noti-3'],
+            'new_review' => ['item' => 'item-2', 'icon' => 'icon-noti-2'],
+            'order_cancelled' => ['item' => 'item-4', 'icon' => 'icon-noti-4'],
+        ];
+      @endphp
+
       <div class="popup-wrap message type-header">
         <div class="dropdown">
           <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton2"
             data-bs-toggle="dropdown" aria-expanded="false">
             <span class="header-item">
-              <span class="text-tiny">1</span>
+              @if ($unreadCount > 0)
+                <span class="text-tiny">{{ $unreadCount }}</span>
+              @endif
               <i class="icon-bell"></i>
             </span>
           </button>
@@ -155,61 +170,89 @@
             <li>
               <h6>Notifications</h6>
             </li>
-            <li>
-              <div class="message-item item-1">
-                <div class="image">
-                  <i class="icon-noti-1"></i>
-                </div>
-                <div>
-                  <div class="body-title-2">Discount available</div>
-                  <div class="text-tiny">Morbi sapien massa, ultricies at rhoncus
-                    at, ullamcorper nec diam</div>
-                </div>
-              </div>
-            </li>
-            <li>
-              <div class="message-item item-2">
-                <div class="image">
-                  <i class="icon-noti-2"></i>
-                </div>
-                <div>
-                  <div class="body-title-2">Account has been verified</div>
-                  <div class="text-tiny">Mauris libero ex, iaculis vitae rhoncus
-                    et</div>
-                </div>
-              </div>
-            </li>
-            <li>
-              <div class="message-item item-3">
-                <div class="image">
-                  <i class="icon-noti-3"></i>
-                </div>
-                <div>
-                  <div class="body-title-2">Order shipped successfully</div>
-                  <div class="text-tiny">Integer aliquam eros nec sollicitudin
-                    sollicitudin</div>
-                </div>
-              </div>
-            </li>
-            <li>
-              <div class="message-item item-4">
-                <div class="image">
-                  <i class="icon-noti-4"></i>
-                </div>
-                <div>
-                  <div class="body-title-2">Order pending: <span>ID 305830</span>
+            @forelse ($unreadNotifications as $notification)
+              @php
+                $style = $notifIcons[$notification->type] ?? ['item' => 'item-1', 'icon' => 'icon-noti-1'];
+              @endphp
+              <li>
+                <a href="#" class="text-decoration-none"
+                  onclick="event.preventDefault(); markNotifRead({{ $notification->id }}, this)">
+                  <div class="message-item {{ $style['item'] }}">
+                    <div class="image">
+                      <i class="{{ $style['icon'] }}"></i>
+                    </div>
+                    <div>
+                      <div class="body-title-2">{{ $notification->title }}</div>
+                      <div class="text-tiny">{{ $notification->created_at->diffForHumans() }}</div>
+                    </div>
                   </div>
-                  <div class="text-tiny">Ultricies at rhoncus at ullamcorper</div>
+                </a>
+              </li>
+            @empty
+              <li>
+                <div class="message-item item-1">
+                  <div class="image">
+                    <i class="icon-noti-1"></i>
+                  </div>
+                  <div>
+                    <div class="body-title-2">No notifications</div>
+                    <div class="text-tiny">You're all caught up!</div>
+                  </div>
                 </div>
-              </div>
-            </li>
-            <li><a href="#" class="tf-button w-full">View all</a></li>
+              </li>
+            @endforelse
+            @if ($unreadCount > 0)
+              <li>
+                <form method="POST" action="{{ route('admin.notifications.readAll') }}">
+                  @csrf
+                  <button type="submit" class="tf-button w-full">Mark all as read</button>
+                </form>
+              </li>
+            @endif
           </ul>
         </div>
       </div>
 
+      <form id="mark-read-form" method="POST" style="display:none;">
+        @csrf
+      </form>
 
-
+      <script>
+        function markNotifRead(id, el) {
+          var form = document.getElementById('mark-read-form');
+          form.action = '/admin/notifications/' + id + '/read';
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', form.action, true);
+          xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+          xhr.onload = function() {
+            if (xhr.status === 200) {
+              var li = el.closest('li');
+              var dropdown = li.closest('.dropdown-menu');
+              li.remove();
+              var badge = dropdown.closest('.popup-wrap').querySelector('.header-item .text-tiny');
+              if (badge) {
+                var count = parseInt(badge.textContent) - 1;
+                if (count <= 0) {
+                  badge.remove();
+                  var markAllBtn = dropdown.querySelector('form button.tf-button');
+                  if (markAllBtn) {
+                    markAllBtn.closest('li').remove();
+                  }
+                  var emptyItem = document.createElement('li');
+                  emptyItem.innerHTML = '<div class="message-item item-1"><div class="image"><i class="icon-noti-1"></i></div><div><div class="body-title-2">No notifications</div><div class="text-tiny">You\'re all caught up!</div></div></div>';
+                  var h6Item = dropdown.querySelector('li h6');
+                  if (h6Item) {
+                    h6Item.closest('li').insertAdjacentElement('afterend', emptyItem);
+                  }
+                } else {
+                  badge.textContent = count;
+                }
+              }
+            }
+          };
+          xhr.send();
+        }
+      </script>
 
       <div class="popup-wrap user type-header">
         <div class="dropdown">

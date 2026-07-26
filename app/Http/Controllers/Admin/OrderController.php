@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -43,6 +44,11 @@ class OrderController extends Controller
                     $item->product->increment('stock', $item->quantity);
                 }
             }
+
+            NotificationService::send('order_cancelled', "Order #{$order->invoice_number} has been cancelled", [
+                'order_id' => $order->id,
+                'invoice' => $order->invoice_number,
+            ]);
         }
 
         $order->update($validated);

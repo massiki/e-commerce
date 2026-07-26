@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Discount;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -82,7 +83,7 @@ class ProductController extends Controller
             $slug = $originalSlug.'-'.$counter++;
         }
 
-        DB::transaction(function () use ($request, $slug) {
+        $product = DB::transaction(function () use ($request, $slug) {
             $product = Product::create([
                 'name' => $request->name,
                 'slug' => $slug,
@@ -116,7 +117,11 @@ class ProductController extends Controller
                 'user_id' => Auth::id(),
                 'activity' => "Created product: {$product->name}",
             ]);
+
+            return $product;
         });
+
+        $this->checkStockNotification($product);
 
         return redirect()->route('admin.products.index')->with('success', 'Product created successfully.');
     }
@@ -228,6 +233,8 @@ class ProductController extends Controller
             ]);
         });
 
+        $this->checkStockNotification($product);
+
         return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
     }
 
@@ -259,5 +266,21 @@ class ProductController extends Controller
         });
 
         return redirect()->route('admin.products.index')->with('success', 'Product deleted successfully.');
+    }
+
+    private function checkStockNotification(Product $product): void
+    {
+        if ($product->stock === 0) {
+            NotificationService::send('out_of_stock', "{$product->name} is out of stock", [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+            ]);
+        } elseif ($product->stock <= 10) {
+            NotificationService::send('low_stock', "{$product->name} stock is low ({$product->stock} left)", [
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'stock' => $product->stock,
+            ]);
+        }
     }
 }

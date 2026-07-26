@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Cart;
+use App\Models\Notification;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +23,14 @@ class AppServiceProvider extends ServiceProvider
                 : 0;
 
             $view->with('cartCount', $cartCount);
+        });
+
+        View::composer('components.admin-navbar', function ($view) {
+            $unreadNotifications = Notification::forAdmin()->unread()->latest()->take(5)->get();
+            $unreadCount = Notification::forAdmin()->unread()->count();
+
+            $view->with('unreadNotifications', $unreadNotifications);
+            $view->with('unreadCount', $unreadCount);
         });
 
         // aktifkan juka menggunakan ngrok
