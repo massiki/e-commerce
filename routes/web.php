@@ -12,8 +12,11 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SliderController;
 use App\Http\Controllers\Customer\AddressController;
 use App\Http\Controllers\Customer\CartController;
+use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\CouponController as CustomerCouponController;
 use App\Http\Controllers\Customer\HomeController;
+use App\Http\Controllers\Customer\MidtransController;
+use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Customer\ProductController as CustomerProductController;
 use App\Http\Controllers\Customer\SearchController;
 use App\Http\Controllers\Customer\WishlistController;
@@ -86,7 +89,21 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
 
     // addresses
     Route::resource('addresses', AddressController::class)->except(['show'])->names('addresses');
+
+    // checkout
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::get('/checkout/{order:invoice_number}/confirmation', [CheckoutController::class, 'confirmation'])->name('checkout.confirmation');
+
+    // orders
+    Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order:invoice_number}', [CustomerOrderController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{order:invoice_number}/cancel', [CustomerOrderController::class, 'cancel'])->name('orders.cancel');
+
 });
+
+// midtrans callback — no auth (external POST from Midtrans)
+Route::post('/customer/midtrans/callback', [MidtransController::class, 'handleCallback'])->name('customer.handleCallback');
 
 // Route::middleware('auth')->group(function () {
 //     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -94,4 +111,4 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
 //     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 // });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

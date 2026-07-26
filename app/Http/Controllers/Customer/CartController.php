@@ -19,6 +19,7 @@ class CartController extends Controller
 
         $subtotal = $cartItems->sum(function ($item) {
             $price = $item->product?->has_discount ? $item->product->discount->value : $item->product?->price;
+
             return $price * $item->quantity;
         });
 

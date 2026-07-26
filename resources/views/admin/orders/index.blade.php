@@ -35,15 +35,14 @@
           </div>
         </div>
         <div class="table-responsive">
-          <table class="table table-striped table-bordered">
+          <table class="table table-bordered table-order">
             <thead>
               <tr>
-                <th class="text-center">Order No</th>
+                <th class="text-center">Invoice No</th>
                 <th class="text-center">Name</th>
                 <th class="text-center">Phone</th>
-                <th class="text-center">Subtotal</th>
-                <th class="text-center">Shipping</th>
                 <th class="text-center">Total</th>
+                <th class="text-center">Payment Method</th>
                 <th class="text-center">Payment Status</th>
                 <th class="text-center">Status</th>
                 <th class="text-center">Order Date</th>
@@ -57,16 +56,16 @@
                   <td class="text-center">{{ $order->invoice_number }}</td>
                   <td class="text-center">{{ $order->recipient_name }}</td>
                   <td class="text-center">{{ $order->phone }}</td>
-                  <td class="text-center">Rp{{ number_format($order->subtotal, 0, ',', '.') }}</td>
-                  <td class="text-center">Rp{{ number_format($order->shipping_cost, 0, ',', '.') }}</td>
                   <td class="text-center">Rp{{ number_format($order->total, 0, ',', '.') }}</td>
+                  <td class="text-center">{{ $order->payment_method }}</td>
                   <td class="text-center">
                     @php
                       $paymentBadge = match ($order->payment_status) {
-                        'paid' => 'bg-success',
-                        'pending' => 'bg-warning text-dark',
-                        'failed' => 'bg-danger',
-                        default => 'bg-secondary',
+                          'paid' => 'bg-success',
+                          'pending' => 'bg-warning text-dark',
+                          'failed' => 'bg-danger',
+                          'unpaid' => 'bg-secondary',
+                          default => 'bg-secondary',
                       };
                     @endphp
                     <span class="badge {{ $paymentBadge }}">{{ ucfirst($order->payment_status) }}</span>
@@ -74,17 +73,17 @@
                   <td class="text-center">
                     @php
                       $statusBadge = match ($order->status) {
-                        'completed' => 'bg-success',
-                        'processing' => 'bg-info',
-                        'shipped' => 'bg-primary',
-                        'pending' => 'bg-warning text-dark',
-                        'cancelled' => 'bg-danger',
-                        default => 'bg-secondary',
+                          'completed' => 'bg-success',
+                          'processing' => 'bg-info',
+                          'shipped' => 'bg-primary',
+                          'pending' => 'bg-warning text-dark',
+                          'cancelled' => 'bg-danger',
+                          default => 'bg-secondary',
                       };
                     @endphp
                     <span class="badge {{ $statusBadge }}">{{ ucfirst($order->status) }}</span>
                   </td>
-                  <td class="text-center">{{ $order->created_at->format('Y-m-d H:i') }}</td>
+                  <td class="text-center">{{ $order->created_at->format('H:i d-M-Y ') }}</td>
                   <td class="text-center">{{ $order->items->count() }}</td>
                   <td class="text-center">
                     <a href="{{ route('admin.orders.show', $order->id) }}">

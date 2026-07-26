@@ -6,7 +6,7 @@
       <a href="{{ route('customer.dashboard') }}" class="menu-link menu-link_us-s {{ $active === 'dashboard' ? 'menu-link_active' : '' }}">Dashboard</a>
     </li>
     <li>
-      <a href="#" class="menu-link menu-link_us-s {{ $active === 'orders' ? 'menu-link_active' : '' }}">Orders</a>
+      <a href="{{ route('customer.orders.index') }}" class="menu-link menu-link_us-s {{ $active === 'orders' ? 'menu-link_active' : '' }}">Orders</a>
     </li>
     <li>
       <a href="{{ route('customer.addresses.index') }}" class="menu-link menu-link_us-s {{ $active === 'addresses' ? 'menu-link_active' : '' }}">Addresses</a>

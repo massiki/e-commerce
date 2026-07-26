@@ -160,6 +160,7 @@ erDiagram
         decimal shipping_cost
         decimal total
         string payment_method
+        string snap_token
         enum payment_status
         enum status
     }

@@ -318,13 +318,13 @@
     </div>
 
     <div class="border-top mt-auto pb-2">
-      <div class="customer-links container mt-4 mb-2 pb-1">
+      <a href="{{ route(Auth::user()?->role?->name === 'admin' ? 'admin.dashboard' : 'customer.dashboard') }}" class="customer-links container mt-4 mb-2 pb-1 text-decoration-none">
         <svg class="d-inline-block align-middle" width="20" height="20" viewBox="0 0 20 20" fill="none"
           xmlns="http://www.w3.org/2000/svg">
           <use href="#icon_user" />
         </svg>
         <span class="d-inline-block ms-2 text-uppercase align-middle fw-medium">My Account</span>
-      </div>
+      </a>
 
 
 
@@ -440,12 +440,21 @@
         </div>
 
         <div class="header-tools__item hover-container">
-          <a href="login.html" class="header-tools__item">
-            <svg class="d-block" width="20" height="20" viewBox="0 0 20 20" fill="none"
-              xmlns="http://www.w3.org/2000/svg">
-              <use href="#icon_user" />
-            </svg>
-          </a>
+          @auth
+            <a href="{{ route(Auth::user()->role?->name === 'admin' ? 'admin.dashboard' : 'customer.dashboard') }}" class="header-tools__item">
+              <svg class="d-block" width="20" height="20" viewBox="0 0 20 20" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <use href="#icon_user" />
+              </svg>
+            </a>
+          @else
+            <a href="{{ route('login') }}" class="header-tools__item">
+              <svg class="d-block" width="20" height="20" viewBox="0 0 20 20" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <use href="#icon_user" />
+              </svg>
+            </a>
+          @endauth
         </div>
 
         <a href="{{ route('wishlist.index') }}" class="header-tools__item">
