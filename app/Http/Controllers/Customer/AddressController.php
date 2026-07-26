@@ -34,12 +34,12 @@ class AddressController extends Controller
     {
         $validated = $request->validate([
             'recipient_name' => 'required|string|max:255',
-            'phone'          => 'required|numeric|digits_between:1,15',
-            'province'       => 'required|string|max:255',
-            'city'           => 'required|string|max:255',
-            'district'       => 'required|string|max:255',
-            'postal_code'    => 'required|numeric|digits_between:1,6',
-            'full_address'   => 'required|string',
+            'phone' => 'required|numeric|digits_between:1,15',
+            'province' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'district' => 'required|string|max:255',
+            'postal_code' => 'required|numeric|digits_between:1,6',
+            'full_address' => 'required|string',
         ]);
 
         $validated['user_id'] = Auth::id();
@@ -76,12 +76,12 @@ class AddressController extends Controller
 
         $validated = $request->validate([
             'recipient_name' => 'required|string|max:255',
-            'phone'          => 'required|numeric|digits_between:1,15',
-            'province'       => 'required|string|max:255',
-            'city'           => 'required|string|max:255',
-            'district'       => 'required|string|max:255',
-            'postal_code'    => 'required|numeric|digits_between:1,6',
-            'full_address'   => 'required|string',
+            'phone' => 'required|numeric|digits_between:1,15',
+            'province' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'district' => 'required|string|max:255',
+            'postal_code' => 'required|numeric|digits_between:1,6',
+            'full_address' => 'required|string',
         ]);
 
         $address->update($validated);

@@ -23,10 +23,10 @@ class CartItem extends Model
     // attribute
     public function getSubTotalAttribute()
     {
-        $subTotal = $this->product?->discount
+        $price = $this->product?->has_discount
             ? $this->product->discount->value
-            : $this->product->price;
+            : $this->product?->price;
 
-        return ($subTotal ?? 0) * $this->quantity;
+        return ($price ?? 0) * $this->quantity;
     }
 }

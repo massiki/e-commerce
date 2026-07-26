@@ -74,6 +74,17 @@ body {
     padding-bottom: 18px;
 }
 
+
+.table-order th:nth-child(3),
+.table-order td:nth-child(3) {
+    width: 150px;
+}
+
+.table-order th:nth-child(9),
+.table-order td:nth-child(9) {
+    width: 50px;
+}
+
 .pname {
     display: flex;
     gap: 13px;
@@ -83,6 +94,7 @@ body {
     width: 20px;
     margin: 0 auto;
 }
+
 .wg-table.table-all-user>* {
     min-width: 1260px;
 }
@@ -144,12 +156,6 @@ body {
 
 .table-striped {
     min-width: 1200px;
-}
-
-.table-striped th:nth-child(2),
-.table-striped td:nth-child(2) {
-    width: 250px;
-    padding-bottom: 18px;
 }
 
 .pname {

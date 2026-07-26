@@ -21,4 +21,33 @@ class OrderController extends Controller
 
         return view('admin.orders.index', compact('orders'));
     }
+
+    public function show(Order $order)
+    {
+        $order->load('items');
+
+        return view('admin.orders.show', compact('order'));
+    }
+
+    public function update(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,processing,shipped,completed,cancelled',
+            'payment_status' => 'required|in:pending,paid,failed,unpaid',
+        ]);
+
+        if ($validated['status'] === 'cancelled' && $order->status !== 'cancelled') {
+            $order->load('items');
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    $item->product->increment('stock', $item->quantity);
+                }
+            }
+        }
+
+        $order->update($validated);
+
+        return redirect()->route('admin.orders.show', $order)
+            ->with('success', 'Order status updated successfully.');
+    }
 }
