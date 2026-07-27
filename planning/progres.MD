@@ -1,6 +1,6 @@
 # Progress Proyek E-Commerce Complex
 
-**Terakhir diperbarui:** 26 Juli 2026 (Sesi 2)
+**Terakhir diperbarui:** 27 Juli 2026 (Sesi 3)
 
 ---
 
@@ -11,11 +11,11 @@
 | ------------------------ | ------------------------------------------------------------------------------------------ |
 | Database Schema          | ✅ ~100% (24 migrations)                                                                    |
 | Models                   | ✅ ~100% (20 models: 3 `#[Fillable]`, 7 `#[Guarded]`, 4 `$fillable`, 1 `$guarded`, 5 tanpa) |
-| Controllers              | ⬜ ~90% (32 total: 11 admin, 11 customer, 9 auth, 1 base)                                   |
-| Views (Blade)            | ✅ ~75% (80 file)                                                                           |
-| Routes                   | ⬜ ~90% (88+ named routes)                                                                  |
+| Controllers              | ✅ ~95% (34 total: 11 admin, 12 customer, 9 auth, 2 base)                                   |
+| Views (Blade)            | ✅ ~80% (83 file)                                                                           |
+| Routes                   | ✅ ~95% (91+ named routes)                                                                  |
 | Tests                    | ⬜ ~10% (11 files, semua Breeze default)                                                    |
-| **Estimasi Keseluruhan** | **⬜ ~75%**                                                                                 |
+| **Estimasi Keseluruhan** | **⬜ ~82%**                                                                                 |
 
 
 ---
@@ -120,7 +120,7 @@
 
 | Fitur               | Controller                     | Routes                                              | Status        |
 | ------------------- | ------------------------------ | --------------------------------------------------- | ------------- |
-| **Dashboard**       | Closure                        | `GET /customer/dashboard` → `customer.dashboard`    | ⬜ View statis |
+| **Dashboard**       | `DashboardController@index`    | `GET /customer/dashboard` → `customer.dashboard`    | ✅ Dinamis     |
 | **Cart Add**        | `CartController::store()`      | `POST /customer/cart/add/{product}`                 | ✅             |
 | **Cart Update**     | `CartController::update()`     | `PATCH /customer/cart/update`                       | ✅             |
 | **Cart Remove**     | `CartController::destroy()`    | `DELETE /customer/cart/remove/{cartItem}`           | ✅             |
@@ -265,6 +265,35 @@
 
 
 
+### Admin Dashboard — Fully Dynamic
+
+- **12 stat cards** (6+6) dengan data real dari database
+  - Total Orders, Total Amount, Pending, Completed, Shipped, Canceled
+  - Total Products, Total Customers (dari User role customer)
+- **Chart ApexCharts** — 3 periode: This Year (monthly), This Week (daily), Last Week (daily)
+  - Series: Completed + Canceled
+  - Dropdown filter interaktif via jQuery
+- **Revenue Growth** — % perubahan completed orders bulan ini vs bulan lalu
+- **Order Growth** — % perubahan jumlah completed orders bulan ini vs bulan lalu
+- **Best Selling Products** — Top 5 produk berdasarkan total quantity terjual
+- **Recent Orders** — 10 order terbaru dengan badges status
+
+### Customer Dashboard — Fully Dynamic
+
+- **Controller:** `Customer\DashboardController@index`
+- **3 stat cards:** Total Orders, Total Spending, Wishlist
+- **Recent Orders** — 5 order terbaru dengan link ke detail
+- **Notifications** — 5 notifikasi terbaru
+- **Styling:** Bootstrap card border rounded-3 shadow-sm (konsisten)
+
+
+### Customer Orders — Redesigned UI
+
+- **Orders Index** — card wrapper, `table-hover`, kolom sederhana, badges konsisten
+- **Orders Show** — semua `wg-box` diganti Bootstrap `card`, tabel pakai `table-hover`
+- 4 section seragam: Order Details, Ordered Items, Shipping Address, Transactions
+
+
 ### Admin — Controller hanya index saja (atau parsial)
 
 
@@ -298,8 +327,6 @@
 | Fitur                         | Prioritas | Keterangan                                     |
 | ----------------------------- | --------- | ---------------------------------------------- |
 | Discount Scheduler            | 🟡 Sedang | Butuh Laravel Task Scheduler + console command |
-| Dashboard Analytics           | 🟡 Sedang | View statis, belum connect ke database         |
-| Customer Dashboard Controller | 🟡 Sedang | 5 view sudah ada, controller belum             |
 | PDF Invoice                   | 🟡 Sedang | Butuh `barryvdh/laravel-dompdf`                |
 | Auto Rating Calculation       | 🟢 Ringan | -                                              |
 | Soft Delete Product           | 🟢 Ringan | -                                              |
@@ -317,8 +344,6 @@
 | ------------------------------------------------------------ | ---------------------------------------------------------- | --------- |
 | Register tidak assign role                                   | User baru daftar dapat `role_id = null`                    | 🔴 Tinggi |
 | Route profile di-comment                                     | `routes/web.php` — profile edit/update/destroy tidak aktif | 🟡 Sedang |
-| Dashboard masih statis                                       | Belum ada query real dari database                         | 🟡 Sedang |
-| Customer dashboard controller                                | 5 view sudah ada, controller + routes belum dibuat         | 🟡 Sedang |
 | Coupon tidak punya `max_uses` / `usage_limit`                | Bisa dipakai unlimited tanpa batas                         | 🟡 Sedang |
 | Tidak ada email/notifikasi setelah order                     | Customer tidak dapat konfirmasi order lewat email          | 🟡 Sedang |
 | Activity log manual                                          | Belum pakai event/listener atau observer                   | 🟡 Sedang |
@@ -328,6 +353,7 @@
 | VAT hardcoded 1000                                           | Harusnya configurable / percentage-based                   | 🟢 Ringan |
 | Address tidak punya `type` (Rumah/Kantor/Kos) & `is_default` | Disebut di BRIEF                                           | 🟢 Ringan |
 | Discount row duplicate `id="cart-vat"`                       | ID sama dengan VAT row, tidak ada JS yang pakai            | 🟢 Ringan |
+| Customer `history.blade.php` & `account.blade.php`           | Kedua view masih kosong (0 baris)                          | 🟢 Ringan |
 
 
 ---
@@ -340,15 +366,15 @@
 | Urutan | Fitur                                      | Alasan                                                 |
 | ------ | ------------------------------------------ | ------------------------------------------------------ |
 | 1      | **Assign role saat register**              | User baru dapat `role_id = null`, perlu di-fix         |
-| 2      | **Dashboard Analytics (Admin & Customer)** | Query real dari database, ganti view statis            |
-| 3      | **Customer Dashboard Controller**          | Account, history — 3 view sudah siap, controller belum |
-| 4      | **Discount Scheduler**                     | Otomatisasi diskon (start/end, auto return price)      |
-| 5      | **Coupon max_uses**                        | Limitasi pemakaian kupon                               |
-| 6      | **PDF Invoice**                            | Download invoice setelah payment                       |
-| 7      | **Midtrans** `onPending` **redirect**      | Fix broken redirect                                    |
-| 8      | **Activity Log Automation**                | Event/listener ganti manual                            |
-| 9      | **Shipping cost integration**              | API shipping / ongkir                                  |
-| 10     | **Soft Delete Product**                    | Data safety                                            |
+| 2      | **Discount Scheduler**                     | Otomatisasi diskon (start/end, auto return price)      |
+| 3      | **Coupon max_uses**                        | Limitasi pemakaian kupon                               |
+| 4      | **PDF Invoice**                            | Download invoice setelah payment                       |
+| 5      | **Midtrans** `onPending` **redirect**      | Fix broken redirect                                    |
+| 6      | **Activity Log Automation**                | Event/listener ganti manual                            |
+| 7      | **Customer empty views**                   | `history.blade.php` & `account.blade.php` masih kosong |
+| 8      | **Shipping cost integration**              | API shipping / ongkir                                  |
+| 9      | **Soft Delete Product**                    | Data safety                                            |
+| 10     | **Auto Rating Calculation**                | Hitung rating otomatis dari reviews                    |
 
 
 ---

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\ProductController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Customer\AddressController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\CouponController as CustomerCouponController;
+use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController;
 use App\Http\Controllers\Customer\HomeController;
 use App\Http\Controllers\Customer\MidtransController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
@@ -34,9 +36,7 @@ Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.in
 
 // admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('dashboard', function () {
-        return view('admin.dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // brands
     Route::resource('brands', BrandController::class)->except(['show'])->names('brands');
@@ -76,9 +76,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 // customer
 Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer.')->group(function () {
-    Route::get('dashboard', function () {
-        return view('customer.dashboard.index');
-    })->name('dashboard');
+    Route::get('dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
 
     // carts
     Route::post('/cart/add/{product}', [CartController::class, 'store'])->name('cart.add');
