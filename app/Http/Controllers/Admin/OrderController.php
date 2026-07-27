@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\NotificationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -55,5 +56,14 @@ class OrderController extends Controller
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Order status updated successfully.');
+    }
+
+    public function shippingLabel(Order $order)
+    {
+        $order->load('items');
+
+        $pdf = Pdf::loadView('admin.orders.shipping-label', compact('order'));
+
+        return $pdf->download('shipping-label-'.$order->invoice_number.'.pdf');
     }
 }

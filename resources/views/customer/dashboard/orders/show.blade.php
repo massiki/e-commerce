@@ -16,6 +16,9 @@
                 <a class="btn btn-sm btn-outline-primary me-2" href="{{ route('customer.checkout.confirmation', $order->invoice_number) }}">
                   <i class="fa fa-file-text"></i> View Confirmation
                 </a>
+                <a class="btn btn-sm btn-outline-danger me-2" href="{{ route('customer.orders.invoice', $order->invoice_number) }}">
+                  <i class="fa fa-file-pdf"></i> Download Invoice
+                </a>
                 <a class="btn btn-sm btn-outline-secondary" href="{{ route('customer.orders.index') }}">
                   <i class="fa fa-arrow-left"></i> Back
                 </a>

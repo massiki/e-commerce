@@ -18,6 +18,7 @@ use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\CouponController as CustomerCouponController;
 use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController;
 use App\Http\Controllers\Customer\HomeController;
+use App\Http\Controllers\Customer\InvoiceController;
 use App\Http\Controllers\Customer\MidtransController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Customer\ProductController as CustomerProductController;
@@ -61,6 +62,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // orders
     Route::resource('orders', OrderController::class)->names('orders');
+    Route::get('/orders/{order}/shipping-label', [OrderController::class, 'shippingLabel'])->name('orders.shipping-label');
 
     // sliders
     Route::resource('sliders', SliderController::class)->except(['show'])->names('sliders');
@@ -106,7 +108,7 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order:invoice_number}', [CustomerOrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{order:invoice_number}/cancel', [CustomerOrderController::class, 'cancel'])->name('orders.cancel');
-
+    Route::get('/orders/{order:invoice_number}/invoice', [InvoiceController::class, 'index'])->name('orders.invoice');
 });
 
 // midtrans callback — no auth (external POST from Midtrans)
