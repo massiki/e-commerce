@@ -41,6 +41,9 @@
             <h5>Order Information</h5>
           </div>
           <div class="col-6 text-end">
+            <a class="btn btn-sm btn-primary me-2" href="{{ route('admin.orders.shipping-label', $order) }}">
+              <i class="icon-download"></i> Shipping Label
+            </a>
             <a class="btn btn-sm btn-danger" href="{{ route('admin.orders.index') }}">Back</a>
           </div>
         </div>
