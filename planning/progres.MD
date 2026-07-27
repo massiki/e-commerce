@@ -1,6 +1,6 @@
 # Progress Proyek E-Commerce Complex
 
-**Terakhir diperbarui:** 27 Juli 2026 (Sesi 3)
+**Terakhir diperbarui:** 27 Juli 2026 (Sesi 4)
 
 ---
 
@@ -10,12 +10,12 @@
 | Komponen                 | Progress                                                                                   |
 | ------------------------ | ------------------------------------------------------------------------------------------ |
 | Database Schema          | ✅ ~100% (24 migrations)                                                                    |
-| Models                   | ✅ ~100% (20 models: 3 `#[Fillable]`, 7 `#[Guarded]`, 4 `$fillable`, 1 `$guarded`, 5 tanpa) |
+| Models                   | ✅ ~100% (20 models: 3 `#[Fillable]`, 10 `#[Guarded]`, 4 `$fillable`, 1 `$guarded`, 2 tanpa) |
 | Controllers              | ✅ ~95% (34 total: 11 admin, 12 customer, 9 auth, 2 base)                                   |
-| Views (Blade)            | ✅ ~80% (83 file)                                                                           |
-| Routes                   | ✅ ~95% (91+ named routes)                                                                  |
-| Tests                    | ⬜ ~10% (11 files, semua Breeze default)                                                    |
-| **Estimasi Keseluruhan** | **⬜ ~82%**                                                                                 |
+| Views (Blade)            | ✅ ~80% (84 file)                                                                           |
+| Routes                   | ✅ ~95% (93+ named routes)                                                                  |
+| Tests                    | ⬜ ~15% (12 files)                                                                          |
+| **Estimasi Keseluruhan** | **⬜ ~85%**                                                                                 |
 
 
 ---
@@ -69,19 +69,19 @@
 ### Seeders
 
 - `DatabaseSeeder` — seeds: 2 roles, 2 users, 5 brands, 5 categories, 50 products
-- Factories: `UserFactory`, `CategoryFactory`, `BrandFactory`, `ProductFactory`, `DiscountFactory`, `ReviewFactory`
+- Factories: `UserFactory`, `CategoryFactory`, `BrandFactory`, `ProductFactory`, `DiscountFactory`, `ReviewFactory`, `OrderFactory`, `OrderItemFactory`
 
 
 
 ### Models (20 total)
 
 
-| Status                             | Models                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------- |
-| ✅ PHP 8 Attributes (`#[Fillable]`) | Cart, CartItem, User                                                          |
-| ✅ PHP 8 Attributes (`#[Guarded]`)  | Discount, Product, ProductImage, Review, Wishlist, WishlistItem, Notification |
-| ✅ Traditional `$fillable`          | Brand, Category, Coupon, Slider, ActivityLog                                  |
-| ⬜ Tanpa mass assignment protection | Address, CouponUsage, Order, OrderItem, Role                                  |
+| Status                             | Models                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------- |
+| ✅ PHP 8 Attributes (`#[Fillable]`) | Cart, CartItem, User                                                                    |
+| ✅ PHP 8 Attributes (`#[Guarded]`)  | Discount, Order, OrderItem, Product, ProductImage, Review, Role, Wishlist, WishlistItem, Notification |
+| ✅ Traditional `$fillable`          | Brand, Category, Coupon, Slider, ActivityLog                                            |
+| ⬜ Tanpa mass assignment protection | Address, CouponUsage                                                                    |
 
 
 
@@ -181,7 +181,9 @@
 - `OrderController@index` — list all orders, search by invoice/recipient/phone
 - `OrderController@show` — detail order + items
 - `OrderController@update` — update status + payment_status, stock restore on cancel, trigger `order_cancelled` notification
-- Views: `admin/orders/index.blade.php`, `admin/orders/show.blade.php`
+- `OrderController@shippingLabel` — download PDF shipping label (sender, recipient, items, total)
+- Views: `admin/orders/index.blade.php`, `admin/orders/show.blade.php`, `admin/orders/shipping-label.blade.php`
+- Route: `GET /admin/orders/{order}/shipping-label` → `admin.orders.shipping-label`
 
 
 
@@ -190,6 +192,7 @@
 - `Customer\OrderController@index` — list orders with pagination, items count
 - `Customer\OrderController@show` — order detail, items, transaction, cancel button
 - `Customer\OrderController@cancel` — cancel order + stock restore
+- `Customer\InvoiceController@index` — download PDF invoice (DomPDF, ownership check, items)
 - `Customer\AddressController@index` — list addresses
 - `Customer\AddressController@create` + `store` — add address
 - `Customer\AddressController@edit` + `update` — edit address
@@ -243,19 +246,20 @@
 
 
 
-### Routes (web.php) — 88+ Named Routes
+### Routes (web.php) — 93+ Named Routes
 
 - **Public/Guest (14):** `/`, register, login, password reset, `/products`, `/products/search`, `/products/{slug}`, `/cart`, `/wishlist`
 - **Auth (7):** email verification, password confirm, password update, logout
-- **Admin (~38):** prefix `admin/`, middleware `auth+role:admin`:
+- **Admin (~39):** prefix `admin/`, middleware `auth+role:admin`:
   - 5 full resource: brands, categories, products, coupons, sliders
   - 1 resource (partial): orders
+  - 1 custom: orders shipping-label
   - 3 read-only: customers, reviews, activities
   - 1 setting: index + update
   - 1 dashboard
   - 2 notifications: markAsRead, readAll
-- **Customer auth (8):** prefix `customer/`, middleware `auth+role:customer`:
-  - dashboard, cart CRUD (3), wishlist CRUD (2), coupon apply/remove (2)
+- **Customer auth (9):** prefix `customer/`, middleware `auth+role:customer`:
+  - dashboard, cart CRUD (3), wishlist CRUD (2), coupon apply/remove (2), invoice download (1)
 
 ---
 
@@ -327,7 +331,6 @@
 | Fitur                         | Prioritas | Keterangan                                     |
 | ----------------------------- | --------- | ---------------------------------------------- |
 | Discount Scheduler            | 🟡 Sedang | Butuh Laravel Task Scheduler + console command |
-| PDF Invoice                   | 🟡 Sedang | Butuh `barryvdh/laravel-dompdf`                |
 | Auto Rating Calculation       | 🟢 Ringan | -                                              |
 | Soft Delete Product           | 🟢 Ringan | -                                              |
 | Activity Log Automation       | 🟢 Ringan | Masih manual di controller                     |
@@ -368,13 +371,12 @@
 | 1      | **Assign role saat register**              | User baru dapat `role_id = null`, perlu di-fix         |
 | 2      | **Discount Scheduler**                     | Otomatisasi diskon (start/end, auto return price)      |
 | 3      | **Coupon max_uses**                        | Limitasi pemakaian kupon                               |
-| 4      | **PDF Invoice**                            | Download invoice setelah payment                       |
-| 5      | **Midtrans** `onPending` **redirect**      | Fix broken redirect                                    |
-| 6      | **Activity Log Automation**                | Event/listener ganti manual                            |
-| 7      | **Customer empty views**                   | `history.blade.php` & `account.blade.php` masih kosong |
-| 8      | **Shipping cost integration**              | API shipping / ongkir                                  |
-| 9      | **Soft Delete Product**                    | Data safety                                            |
-| 10     | **Auto Rating Calculation**                | Hitung rating otomatis dari reviews                    |
+| 4      | **Midtrans** `onPending` **redirect**      | Fix broken redirect                                    |
+| 5      | **Activity Log Automation**                | Event/listener ganti manual                            |
+| 6      | **Customer empty views**                   | `history.blade.php` & `account.blade.php` masih kosong |
+| 7      | **Shipping cost integration**              | API shipping / ongkir                                  |
+| 8      | **Soft Delete Product**                    | Data safety                                            |
+| 9      | **Auto Rating Calculation**                | Hitung rating otomatis dari reviews                    |
 
 
 ---
@@ -396,6 +398,7 @@
 - [ ] Dashboard (Revenue, Orders, Customers, Products, Monthly Sales, Best Selling, Low Stock)
 - [ ] Discount Scheduler (Start/End, Auto Return Normal Price)
 - [x] Order Management (Pending → Processing → Completed/Cancelled)
+- [x] Shipping Label (PDF Download)
 - [ ] Customer Management (List, Detail, Purchase History)
 - [ ] Review Management (View Reviews & Ratings)
 - [x] Activity Log (Login, Product, Order, Coupon)
@@ -421,7 +424,8 @@
 - [x] Payment History (via order list + detail)
 - [x] Product Review (Rating 1-5, Submit form functional)
 - [x] Notification (Admin: Order, Payment, Stock, Review, Cancel)
-- [ ] Invoice (Download PDF)
+- [x] Invoice (Download PDF)
+- [x] Shipping Label (Admin — PDF)
 
 ---
 
@@ -442,6 +446,7 @@
 | `laravel/pint`          | ^1.27   |
 | `laravel/debugbar`      | ^4.4    |
 | `midtrans/midtrans-php` | ^2.6.2  |
+| `barryvdh/laravel-dompdf` | ^3.1  |
 
 
 
@@ -451,7 +456,6 @@
 
 | Package                                 | Untuk                 |
 | --------------------------------------- | --------------------- |
-| `barryvdh/laravel-dompdf`               | PDF invoice           |
 | `spatie/laravel-activitylog` (opsional) | Activity log otomatis |
 
 
@@ -462,16 +466,16 @@
 ## Total File Summary
 
 ```
-app/Models/              → 20 models (5 tanpa mass assignment protection — Address, CouponUsage, Order, OrderItem, Role)
+app/Models/              → 20 models (2 tanpa mass assignment protection — Address, CouponUsage)
 app/Services/            → 1 service (NotificationService)
 app/Console/Commands/    → 1 command (CleanOldNotifications)
 app/Http/Controllers/    → 32 controllers (11 admin: 4 partial; 11 customer: all complete; 9 auth; 1 base)
-resources/views/         → 80 Blade files
+resources/views/         → 84 Blade files
 database/migrations/     → 24 migrations
 database/seeders/        → 1 seeder (DatabaseSeeder)
-database/factories/      → 6 factories (+ ReviewFactory)
+database/factories/      → 8 factories (+ ReviewFactory, OrderFactory, OrderItemFactory)
 routes/                  → web.php, auth.php, console.php
-tests/                   → 11 test files (semua Breeze default)
+tests/                   → 12 test files (1 custom: InvoiceTest)
 planning/                → 6 dokumen (BRIEF, ERD, USE_CASE, SEQUENCE, ACTIVITY, progres)
 ```
 
