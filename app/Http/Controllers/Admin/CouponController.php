@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ActivityLog;
 use App\Models\Coupon;
+use App\Services\LogActivityService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class CouponController extends Controller
 {
@@ -45,10 +44,7 @@ class CouponController extends Controller
             'expired_at' => $request->expired_at,
         ]);
 
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'activity' => "Created coupon: {$coupon->code}",
-        ]);
+        LogActivityService::log("Created coupon: {$coupon->code}");
 
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon created successfully.');
     }
@@ -76,10 +72,7 @@ class CouponController extends Controller
             'expired_at' => $request->expired_at,
         ]);
 
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'activity' => "Updated coupon: {$coupon->code}",
-        ]);
+        LogActivityService::log("Updated coupon: {$coupon->code}");
 
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon updated successfully.');
     }
@@ -90,10 +83,7 @@ class CouponController extends Controller
 
         $coupon->delete();
 
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'activity' => "Deleted coupon: {$couponCode}",
-        ]);
+        LogActivityService::log("Deleted coupon: {$couponCode}");
 
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon deleted successfully.');
     }

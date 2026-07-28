@@ -34,6 +34,8 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
+        LogActivityService::log("Updated profile for user {$request->user()->email}");
+
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
@@ -49,6 +51,8 @@ class ProfileController extends Controller
         $user = $request->user();
 
         Auth::logout();
+
+        LogActivityService::log("Deleted account for user {$user->email}");
 
         $user->delete();
 

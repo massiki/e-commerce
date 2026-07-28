@@ -1,6 +1,6 @@
 # Progress Proyek E-Commerce Complex
 
-**Terakhir diperbarui:** 27 Juli 2026 (Sesi 4)
+**Terakhir diperbarui:** 28 Juli 2026 (Sesi 5)
 
 ---
 
@@ -306,19 +306,29 @@
 | Customers  | `index()` saja         | `index.blade.php` | GET only   | ❌             |
 | Reviews    | `index()` saja         | `index.blade.php` | GET only   | ❌             |
 | Activities | `index()` saja         | `index.blade.php` | GET only   | ❌ (read-only) |
-| Settings   | `index()` + `update()` | `index.blade.php` | GET + POST | ❌             |
+| Settings   | `index()` + `update()` | `index.blade.php` | GET + POST | ✅ update()    |
 
 
 
 
-### Customer Area — View Saja (Controller Belum / Masih Perlu)
+### Customer Area — View Saja (Masih Perlu Controller)
 
 
-| Fitur     | View Files                             | Controller  | Routes      |
-| --------- | -------------------------------------- | ----------- | ----------- |
-| Dashboard | `customer/dashboard/index.blade.php`   | ❌ (Closure) | Static view |
-| Account   | `customer/dashboard/account.blade.php` | ❌           | ❌           |
-| History   | `customer/dashboard/history.blade.php` | ❌           | ❌           |
+| Fitur     | View Files                             | ActivityLog |
+| --------- | -------------------------------------- | ----------- |
+| Account   | `customer/dashboard/account.blade.php` | ❌           |
+| History   | `customer/dashboard/history.blade.php` | ❌           |
+
+### Activity Log — Selesai untuk Semua Controller Write
+
+| Area               | Controller                          | Method dengan Log                                                                 |
+| ------------------ | ----------------------------------- | --------------------------------------------------------------------------------- |
+| **Admin CRUD**     | Brand, Category, Coupon, Product, Slider | store/update/destroy (refactor ke service)                                  |
+| **Admin lainnya**  | Order, Setting, Notification         | update(), markAsRead(), readAll()                                                |
+| **Customer**       | Checkout, Order, Midtrans, Address, Cart, Review, Wishlist, Coupon | store/update/destroy/cancel/apply/remove/handleCallback |
+| **Auth**           | RegisteredUser, AuthenticatedSession, Password, NewPassword | store/destroy/update/reset/login/logout                         |
+| **Profile**        | ProfileController                    | update(), destroy()                                                                |
+| **Cleanup**        | `activity-log:clean` (command)       | Hapus log > 7 hari, jalan `->daily()` via `routes/console.php`                   |
 
 
 ---
@@ -333,7 +343,7 @@
 | Discount Scheduler            | 🟡 Sedang | Butuh Laravel Task Scheduler + console command |
 | Auto Rating Calculation       | 🟢 Ringan | -                                              |
 | Soft Delete Product           | 🟢 Ringan | -                                              |
-| Activity Log Automation       | 🟢 Ringan | Masih manual di controller                     |
+| Activity Log Automation       | ✅ Selesai | Service reusable + auto cleanup 7 hari |
 
 
 ---
@@ -345,11 +355,10 @@
 
 | Issue                                                        | Detail                                                     | Severity  |
 | ------------------------------------------------------------ | ---------------------------------------------------------- | --------- |
-| Register tidak assign role                                   | User baru daftar dapat `role_id = null`                    | 🔴 Tinggi |
 | Route profile di-comment                                     | `routes/web.php` — profile edit/update/destroy tidak aktif | 🟡 Sedang |
 | Coupon tidak punya `max_uses` / `usage_limit`                | Bisa dipakai unlimited tanpa batas                         | 🟡 Sedang |
 | Tidak ada email/notifikasi setelah order                     | Customer tidak dapat konfirmasi order lewat email          | 🟡 Sedang |
-| Activity log manual                                          | Belum pakai event/listener atau observer                   | 🟡 Sedang |
+| Activity log manual                                          | Kini pakai service + schedule cleanup, belum event/observer | 🟡 Sedang |
 | Admin Brand/Category/Product `show()`                        | Method `show()` ada tapi isinya kosong (stub)              | 🟢 Ringan |
 | `onPending` Midtrans redirect ke `#`                         | Harusnya redirect ke order show page                       | 🟢 Ringan |
 | `shipping_cost` hardcoded 0                                  | Tidak ada shipping API integration                         | 🟢 Ringan |
@@ -368,15 +377,12 @@
 
 | Urutan | Fitur                                      | Alasan                                                 |
 | ------ | ------------------------------------------ | ------------------------------------------------------ |
-| 1      | **Assign role saat register**              | User baru dapat `role_id = null`, perlu di-fix         |
-| 2      | **Discount Scheduler**                     | Otomatisasi diskon (start/end, auto return price)      |
-| 3      | **Coupon max_uses**                        | Limitasi pemakaian kupon                               |
-| 4      | **Midtrans** `onPending` **redirect**      | Fix broken redirect                                    |
-| 5      | **Activity Log Automation**                | Event/listener ganti manual                            |
-| 6      | **Customer empty views**                   | `history.blade.php` & `account.blade.php` masih kosong |
-| 7      | **Shipping cost integration**              | API shipping / ongkir                                  |
-| 8      | **Soft Delete Product**                    | Data safety                                            |
-| 9      | **Auto Rating Calculation**                | Hitung rating otomatis dari reviews                    |
+| 1      | **Coupon max_uses**                        | Limitasi pemakaian kupon                               |
+| 2      | **Midtrans** `onPending` **redirect**      | Fix broken redirect                                    |
+| 3      | **Customer empty views**                   | `history.blade.php` & `account.blade.php` masih kosong |
+| 4      | **Shipping cost integration**              | API shipping / ongkir                                  |
+| 5      | **Soft Delete Product**                    | Data safety                                            |
+| 6      | **Auto Rating Calculation**                | Hitung rating otomatis dari reviews                    |
 
 
 ---
@@ -449,16 +455,6 @@
 | `barryvdh/laravel-dompdf` | ^3.1  |
 
 
-
-
-### Perlu Ditambahkan
-
-
-| Package                                 | Untuk                 |
-| --------------------------------------- | --------------------- |
-| `spatie/laravel-activitylog` (opsional) | Activity log otomatis |
-
-
 ---
 
 
@@ -467,8 +463,8 @@
 
 ```
 app/Models/              → 20 models (2 tanpa mass assignment protection — Address, CouponUsage)
-app/Services/            → 1 service (NotificationService)
-app/Console/Commands/    → 1 command (CleanOldNotifications)
+app/Services/            → 2 services (NotificationService, LogActivityService)
+app/Console/Commands/    → 2 commands (CleanOldNotifications, CleanActivityLog)
 app/Http/Controllers/    → 32 controllers (11 admin: 4 partial; 11 customer: all complete; 9 auth; 1 base)
 resources/views/         → 84 Blade files
 database/migrations/     → 24 migrations

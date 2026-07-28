@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Address;
+use App\Services\LogActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -46,6 +47,8 @@ class AddressController extends Controller
 
         Address::create($validated);
 
+        LogActivityService::log("Created address: {$validated['recipient_name']}");
+
         return redirect()->route('customer.addresses.index')->with('success', 'Address added successfully.');
     }
 
@@ -86,6 +89,8 @@ class AddressController extends Controller
 
         $address->update($validated);
 
+        LogActivityService::log("Updated address: {$address->recipient_name}");
+
         return redirect()->route('customer.addresses.index')->with('success', 'Address updated successfully.');
     }
 
@@ -95,6 +100,8 @@ class AddressController extends Controller
     public function destroy(Address $address)
     {
         abort_if($address->user_id !== Auth::id(), 403);
+
+        LogActivityService::log("Deleted address: {$address->recipient_name}");
 
         $address->delete();
 

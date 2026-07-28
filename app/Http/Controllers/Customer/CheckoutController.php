@@ -10,6 +10,7 @@ use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Services\LogActivityService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -246,6 +247,8 @@ class CheckoutController extends Controller
         }
 
         session()->forget('coupon');
+
+        LogActivityService::log("Created order {$order->invoice_number}: total={$order->total}, payment={$order->payment_method}");
 
         NotificationService::send('order_placed', "New order #{$order->invoice_number}", [
             'order_id' => $order->id,

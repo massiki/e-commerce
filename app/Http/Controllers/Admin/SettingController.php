@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\LogActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -44,6 +45,8 @@ class SettingController extends Controller
         }
 
         $user->save();
+
+        LogActivityService::log('Updated admin settings: name/email/phone changed');
 
         return back()->with('success', 'Settings updated successfully.');
     }

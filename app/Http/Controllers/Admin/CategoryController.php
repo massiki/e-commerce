@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ActivityLog;
 use App\Models\Category;
+use App\Services\LogActivityService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -54,10 +53,7 @@ class CategoryController extends Controller
             'image' => $imagePath,
         ]);
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Created category: {$category->name}",
-        ]);
+        LogActivityService::log("Created category: {$category->name}");
 
         return redirect()->route('admin.categories.index')->with('success', 'Category created successfully.');
     }
@@ -100,10 +96,7 @@ class CategoryController extends Controller
             'image' => $imagePath,
         ]);
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Updated category: {$category->name}",
-        ]);
+        LogActivityService::log("Updated category: {$category->name}");
 
         return redirect()->route('admin.categories.index')->with('success', 'Category updated successfully.');
     }
@@ -114,10 +107,7 @@ class CategoryController extends Controller
             Storage::disk('public')->delete($category->image);
         }
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Deleted category: {$category->name}",
-        ]);
+        LogActivityService::log("Deleted category: {$category->name}");
 
         $category->delete();
 

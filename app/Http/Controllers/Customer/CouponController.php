@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Coupon;
+use App\Services\LogActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -54,12 +55,16 @@ class CouponController extends Controller
             ],
         ]);
 
+        LogActivityService::log("Applied coupon {$coupon->code}");
+
         return redirect()->back()->with('success', 'Coupon applied successfully.');
     }
 
     public function remove()
     {
         session()->forget('coupon');
+
+        LogActivityService::log('Removed coupon from session');
 
         return redirect()->back()->with('success', 'Coupon removed successfully.');
     }

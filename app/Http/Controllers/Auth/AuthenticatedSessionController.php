@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\LogActivityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,8 @@ class AuthenticatedSessionController extends Controller
         $user = Auth::user();
         $route = $user->role?->name === 'admin' ? 'admin.dashboard' : 'customer.dashboard';
 
+        LogActivityService::log("User logged in: {$user->email}");
+
         return redirect()->intended(route($route, absolute: false));
     }
 
@@ -39,11 +42,15 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $email = Auth::user()?->email;
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
+
+        LogActivityService::log("User logged out: {$email}");
 
         return redirect('/');
     }
