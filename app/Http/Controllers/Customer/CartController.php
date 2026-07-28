@@ -7,6 +7,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Coupon;
 use App\Models\Product;
+use App\Services\LogActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -63,6 +64,8 @@ class CartController extends Controller
             ['quantity' => 0],
         )->increment('quantity', $request->integer('quantity', 1));
 
+        LogActivityService::log("Added product {$product->name} to cart");
+
         return back()->with('success', 'Product added to cart!');
     }
 
@@ -77,12 +80,17 @@ class CartController extends Controller
             }
         }
 
+        LogActivityService::log('Updated cart quantities');
+
         return back()->with('success', 'Cart updated!');
     }
 
     public function destroy(CartItem $cartItem)
     {
         abort_if($cartItem->cart->user_id !== Auth::id(), 403);
+
+        LogActivityService::log("Removed product {$cartItem->product->name} from cart");
+
         $cartItem->delete();
 
         return back()->with('success', 'Item removed from cart!');

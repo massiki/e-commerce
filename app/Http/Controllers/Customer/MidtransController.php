@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\LogActivityService;
 use App\Services\NotificationService;
 use Midtrans\Config;
 use Midtrans\Notification;
@@ -40,6 +41,8 @@ class MidtransController extends Controller
             }
             $order->update(['payment_status' => 'failed', 'status' => 'cancelled']);
 
+            LogActivityService::log("Payment expired for order {$order->invoice_number}");
+
             NotificationService::send('payment_expired', "Payment expired for order #{$order->invoice_number}", [
                 'order_id' => $order->id,
                 'invoice' => $order->invoice_number,
@@ -53,12 +56,16 @@ class MidtransController extends Controller
             }
             $order->update(['payment_status' => 'failed', 'status' => 'cancelled']);
 
+            LogActivityService::log("Payment failed for order {$order->invoice_number}");
+
             NotificationService::send('payment_failed', "Payment failed for order #{$order->invoice_number}", [
                 'order_id' => $order->id,
                 'invoice' => $order->invoice_number,
             ]);
         } elseif ($transactionStatus === 'settlement') {
             $order->update(['payment_status' => 'paid', 'status' => 'processing']);
+
+            LogActivityService::log("Payment settled for order {$order->invoice_number}");
 
             NotificationService::send('payment_settlement', "Payment settled for order #{$order->invoice_number}", [
                 'order_id' => $order->id,

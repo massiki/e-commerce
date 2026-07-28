@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ActivityLog;
 use App\Models\Brand;
+use App\Services\LogActivityService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -63,10 +62,7 @@ class BrandController extends Controller
             'image' => $imagePath,
         ]);
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Created brand: {$brand->name}",
-        ]);
+        LogActivityService::log("Created brand: {$brand->name}");
 
         return redirect()->route('admin.brands.index')->with('success', 'Brand created successfully.');
     }
@@ -118,10 +114,7 @@ class BrandController extends Controller
             'image' => $imagePath,
         ]);
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Updated brand: {$brand->name}",
-        ]);
+        LogActivityService::log("Updated brand: {$brand->name}");
 
         return redirect()->route('admin.brands.index')->with('success', 'Brand updated successfully.');
     }
@@ -135,10 +128,7 @@ class BrandController extends Controller
             Storage::disk('public')->delete($brand->image);
         }
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Deleted brand: {$brand->name}",
-        ]);
+        LogActivityService::log("Deleted brand: {$brand->name}");
 
         $brand->delete();
 

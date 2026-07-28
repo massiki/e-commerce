@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\LogActivityService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -50,6 +51,8 @@ class OrderController extends Controller
                 'payment_status' => 'failed',
             ]);
         });
+
+        LogActivityService::log("Cancelled order {$order->invoice_number}");
 
         return redirect()->route('customer.orders.index')
             ->with('success', 'Order cancelled successfully.');

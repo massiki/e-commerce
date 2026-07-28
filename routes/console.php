@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('notifications:clean')->daily();
+Schedule::command('activity-log:clean')->daily();

@@ -33,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with('unreadCount', $unreadCount);
         });
 
-        // aktifkan juka menggunakan ngrok
+        // aktifkan jika menggunakan ngrok
         // if (config('app.env') === 'local') {
         //     URL::forceScheme('https');
         // }

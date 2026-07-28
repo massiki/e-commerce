@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\LogActivityService;
 use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -53,6 +54,8 @@ class OrderController extends Controller
         }
 
         $order->update($validated);
+
+        LogActivityService::log("Updated order {$order->invoice_number}: status={$validated['status']}, payment={$validated['payment_status']}");
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Order status updated successfully.');

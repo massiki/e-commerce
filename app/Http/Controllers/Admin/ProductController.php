@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ActivityLog;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Discount;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Services\LogActivityService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -113,10 +112,7 @@ class ProductController extends Controller
                 ]);
             }
 
-            ActivityLog::create([
-                'user_id' => Auth::id(),
-                'activity' => "Created product: {$product->name}",
-            ]);
+            LogActivityService::log("Created product: {$product->name}");
 
             return $product;
         });
@@ -227,10 +223,7 @@ class ProductController extends Controller
                 $product->discount->delete();
             }
 
-            ActivityLog::create([
-                'user_id' => Auth::id(),
-                'activity' => "Updated product: {$product->name}",
-            ]);
+            LogActivityService::log("Updated product: {$product->name}");
         });
 
         $this->checkStockNotification($product);
@@ -257,10 +250,7 @@ class ProductController extends Controller
                 $image->delete();
             }
 
-            ActivityLog::create([
-                'user_id' => Auth::id(),
-                'activity' => "Deleted product: {$product->name}",
-            ]);
+            LogActivityService::log("Deleted product: {$product->name}");
 
             $product->delete();
         });

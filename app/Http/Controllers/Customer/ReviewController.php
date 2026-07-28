@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
+use App\Services\LogActivityService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +37,8 @@ class ReviewController extends Controller
             'rating' => $validated['rating'],
             'comment' => $validated['comment'],
         ]);
+
+        LogActivityService::log("Created review for {$product->name} ({$review->rating}/5)");
 
         NotificationService::send('new_review', "New review for {$product->name} ({$review->rating}/5)", [
             'review_id' => $review->id,

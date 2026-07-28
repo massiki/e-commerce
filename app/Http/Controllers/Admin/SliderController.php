@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ActivityLog;
 use App\Models\Slider;
+use App\Services\LogActivityService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class SliderController extends Controller
@@ -51,10 +50,7 @@ class SliderController extends Controller
             'image' => $imagePath,
         ]);
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Created slider: {$slider->title}",
-        ]);
+        LogActivityService::log("Created slider: {$slider->title}");
 
         return redirect()->route('admin.sliders.index')->with('success', 'Slider created successfully.');
     }
@@ -92,10 +88,7 @@ class SliderController extends Controller
             'image' => $imagePath,
         ]);
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Updated slider: {$slider->title}",
-        ]);
+        LogActivityService::log("Updated slider: {$slider->title}");
 
         return redirect()->route('admin.sliders.index')->with('success', 'Slider updated successfully.');
     }
@@ -106,10 +99,7 @@ class SliderController extends Controller
             Storage::disk('public')->delete($slider->image);
         }
 
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => "Deleted slider: {$slider->title}",
-        ]);
+        LogActivityService::log("Deleted slider: {$slider->title}");
 
         $slider->delete();
 

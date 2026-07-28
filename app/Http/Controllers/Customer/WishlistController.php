@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Wishlist;
 use App\Models\WishlistItem;
+use App\Services\LogActivityService;
 use Illuminate\Support\Facades\Auth;
 
 class WishlistController extends Controller
@@ -33,11 +34,15 @@ class WishlistController extends Controller
             $wishlist->items()->create(['product_id' => $product->id]);
         }
 
+        LogActivityService::log("Added product {$product->name} to wishlist");
+
         return back()->with('success', 'Product added to wishlist.');
     }
 
     public function remove(WishlistItem $wishlistItem)
     {
+        LogActivityService::log("Removed product {$wishlistItem->product->name} from wishlist");
+
         $wishlistItem->delete();
 
         return back()->with('success', 'Product removed from wishlist.');
