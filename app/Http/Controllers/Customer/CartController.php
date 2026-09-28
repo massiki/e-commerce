@@ -57,12 +57,16 @@ class CartController extends Controller
 
     public function store(Request $request, Product $product)
     {
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1|max:1000',
+        ]);
+
         $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
 
         $cart->items()->firstOrCreate(
             ['product_id' => $product->id],
             ['quantity' => 0],
-        )->increment('quantity', $request->integer('quantity', 1));
+        )->increment('quantity', $validated['quantity']);
 
         LogActivityService::log("Added product {$product->name} to cart");
 

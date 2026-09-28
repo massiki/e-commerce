@@ -6,6 +6,12 @@ body {
     max-width: 190px;
 }
 
+#logo_header,
+#logo_header_mobile {
+    max-height: 48px;
+    width: auto;
+}
+
 .wg-table.table-all-user>* {
     min-width: 1260px;
 }

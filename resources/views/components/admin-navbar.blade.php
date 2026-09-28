@@ -2,9 +2,9 @@
   <div class="wrap">
     <div class="header-left">
       <a href="{{ asset('admin/index-2.html') }}">
-        <img class="" id="logo_header_mobile" alt="" src="{{ asset('admin/images/logo/logo.png') }}"
-          data-light="{{ asset('admin/images/logo/logo.png') }}" data-dark="{{ asset('admin/images/logo/logo.png') }}"
-          data-width="154px" data-height="52px" data-retina="{{ asset('admin/images/logo/logo.png') }}">
+        <img class="" id="logo_header_mobile" alt="" src="{{ asset('logo-fikri.png') }}"
+          data-light="{{ asset('logo-fikri.png') }}" data-dark="{{ asset('logo-fikri.png') }}"
+          data-retina="{{ asset('logo-fikri.png') }}">
       </a>
       <div class="button-show-hide">
         <i class="icon-menu-left"></i>
