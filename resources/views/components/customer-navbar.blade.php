@@ -234,6 +234,8 @@
 
   .logo__image {
     max-width: 220px;
+    max-height: 56px;
+    width: auto;
   }
 </style>
 <div class="header-mobile header_sticky">
@@ -247,7 +249,7 @@
 
     <div class="logo">
       <a href="#">
-        <img src="{{ asset('assets/images/logo.png') }}" alt="Uomo" class="logo__image d-block" />
+          <img src="{{ asset('logo-fikri.png') }}" alt="{{ config('app.name') }}" class="logo__image d-block" />
       </a>
     </div>
 
@@ -379,7 +381,7 @@
     <div class="header-desk header-desk_type_1">
       <div class="logo">
         <a href="#">
-          <img src="{{ asset('assets/images/logo.png') }}" alt="Uomo" class="logo__image d-block" />
+        <img src="{{ asset('logo-fikri.png') }}" alt="{{ config('app.name') }}" class="logo__image d-block" />
         </a>
       </div>
 

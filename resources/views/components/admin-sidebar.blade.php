@@ -1,8 +1,8 @@
 <div class="section-menu-left">
   <div class="box-logo">
     <a href="#" id="site-logo-inner">
-      <img class="" id="logo_header" alt="" src="{{ asset('admin/images/logo/logo.png') }}"
-        data-light="{{ asset('admin/images/logo/logo.png') }}" data-dark="{{ asset('admin/images/logo/logo.png') }}">
+      <img class="" id="logo_header" alt="" src="{{ asset('logo-fikri.png') }}"
+        data-light="{{ asset('logo-fikri.png') }}" data-dark="{{ asset('logo-fikri.png') }}">
     </a>
     <div class="button-show-hide">
       <i class="icon-menu-left"></i>

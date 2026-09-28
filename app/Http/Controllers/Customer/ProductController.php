@@ -17,11 +17,11 @@ class ProductController extends Controller
             ->withAvg('reviews', 'rating');
 
         if ($request->filled('category')) {
-            $query->whereHas('category', fn($q) => $q->where('slug', $request->category));
+            $query->whereHas('category', fn ($q) => $q->where('slug', $request->category));
         }
 
         if ($request->filled('brand')) {
-            $query->whereHas('brand', fn($q) => $q->whereIn('slug', (array) $request->brand));
+            $query->whereHas('brand', fn ($q) => $q->whereIn('slug', (array) $request->brand));
         }
 
         match ($request->sort) {

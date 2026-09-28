@@ -13,8 +13,8 @@
   <link rel="stylesheet" type="text/css" href="{{ asset('admin/css/style.css') }}">
   <link rel="stylesheet" href="{{ asset('admin/font/fonts.css') }}">
   <link rel="stylesheet" href="{{ asset('admin/icon/style.css') }}">
-  <link rel="shortcut icon" href="{{ asset('admin/images/favicon.ico') }}">
-  <link rel="apple-touch-icon-precomposed" href="{{ asset('admin/images/favicon.ico') }}">
+  <link rel="shortcut icon" href="{{ asset('logo-fikri.png') }}" type="image/png">
+  <link rel="apple-touch-icon" href="{{ asset('logo-fikri.png') }}" type="image/png">
   <link rel="stylesheet" type="text/css" href="{{ asset('admin/css/sweetalert.min.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ asset('admin/css/custom.css') }}">
 </head>
