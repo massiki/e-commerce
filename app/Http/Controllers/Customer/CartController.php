@@ -76,7 +76,7 @@ class CartController extends Controller
         foreach ($request->input('quantities', []) as $itemId => $quantity) {
             $item = $cart->items()->find($itemId);
             if ($item) {
-                $item->update(['quantity' => max(1, (int) $quantity)]);
+                $item->update(['quantity' => min(1000, max(1, (int) $quantity))]);
             }
         }
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -34,17 +35,22 @@ class PaymentStateService
                 return false;
             }
 
-            Payment::create([
-                'order_id' => $locked->id,
-                'provider' => 'midtrans',
-                'transaction_id' => $status->transaction_id ?? null,
-                'status_code' => isset($status->status_code) ? (string) $status->status_code : null,
-                'transaction_status' => $status->transaction_status ?? null,
-                'fraud_status' => $status->fraud_status ?? null,
-                'gross_amount' => isset($status->gross_amount) ? (float) $status->gross_amount : null,
-                'payload' => $payload,
-                'paid_at' => $this->paidAt($status),
-            ]);
+            // Dedupe: notifikasi/sync/reconcile yang berulang tidak boleh membuat baris Payment ganda.
+            Payment::firstOrCreate(
+                [
+                    'order_id' => $locked->id,
+                    'transaction_id' => $status->transaction_id ?? null,
+                    'transaction_status' => $status->transaction_status ?? null,
+                ],
+                [
+                    'provider' => 'midtrans',
+                    'status_code' => isset($status->status_code) ? (string) $status->status_code : null,
+                    'fraud_status' => $status->fraud_status ?? null,
+                    'gross_amount' => isset($status->gross_amount) ? (float) $status->gross_amount : null,
+                    'payload' => $payload,
+                    'paid_at' => $this->paidAt($status),
+                ]
+            );
 
             return $this->transition($locked, $status, $source);
         });
@@ -70,20 +76,23 @@ class PaymentStateService
 
         if ($isPaid) {
             if ($this->amountMismatch($order, $status)) {
-                Log::error('Midtrans amount mismatch — payment ignored', [
-                    'invoice' => $order->invoice_number,
-                    'order_total' => $order->total,
-                    'gross_amount' => $status->gross_amount ?? null,
-                    'source' => $source,
-                ]);
+                // Log & notifikasi sekali saja per order (webhook bisa berulang tanpa henti).
+                if (Cache::add("payment-mismatch:{$order->id}", 1, now()->addDay())) {
+                    Log::error('Midtrans amount mismatch — payment ignored', [
+                        'invoice' => $order->invoice_number,
+                        'order_total' => $order->total,
+                        'gross_amount' => $status->gross_amount ?? null,
+                        'source' => $source,
+                    ]);
 
-                NotificationService::send('payment_anomaly', "Amount mismatch for order #{$order->invoice_number}", [
-                    'order_id' => $order->id,
-                    'invoice' => $order->invoice_number,
-                    'order_total' => (string) $order->total,
-                    'gross_amount' => (string) ($status->gross_amount ?? 'missing'),
-                    'reason' => 'amount_mismatch',
-                ]);
+                    NotificationService::send('payment_anomaly', "Amount mismatch for order #{$order->invoice_number}", [
+                        'order_id' => $order->id,
+                        'invoice' => $order->invoice_number,
+                        'order_total' => (string) $order->total,
+                        'gross_amount' => (string) ($status->gross_amount ?? 'missing'),
+                        'reason' => 'amount_mismatch',
+                    ]);
+                }
 
                 return false;
             }

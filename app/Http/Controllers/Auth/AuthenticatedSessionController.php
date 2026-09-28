@@ -30,11 +30,10 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
-        $route = $user->role?->name === 'admin' ? 'admin.dashboard' : 'customer.dashboard';
 
         LogActivityService::log("User logged in: {$user->email}");
 
-        return redirect()->intended(route($route, absolute: false));
+        return redirect()->intended(route($user->dashboardRoute(), absolute: false));
     }
 
     /**

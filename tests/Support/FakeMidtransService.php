@@ -21,6 +21,8 @@ class FakeMidtransService extends MidtransService
 
     public ?string $lastExpired = null;
 
+    public int $statusCalls = 0;
+
     public function createSnapToken(array $payload): string
     {
         $this->lastSnapPayload = $payload;
@@ -30,6 +32,8 @@ class FakeMidtransService extends MidtransService
 
     public function getStatus(string $orderId): ?object
     {
+        $this->statusCalls++;
+
         if ($this->statusThrows) {
             throw new MidtransUnavailableException('Midtrans is unavailable');
         }

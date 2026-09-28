@@ -66,6 +66,13 @@ function customer(): User
     return User::factory()->create(['role_id' => $role->id]);
 }
 
+function admin(): User
+{
+    $role = Role::firstOrCreate(['name' => 'admin']);
+
+    return User::factory()->create(['role_id' => $role->id]);
+}
+
 /**
  * Buat order Midtrans beserta product dan item-nya.
  *

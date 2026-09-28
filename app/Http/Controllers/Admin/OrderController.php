@@ -8,6 +8,7 @@ use App\Services\LogActivityService;
 use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -39,21 +40,56 @@ class OrderController extends Controller
             'payment_status' => 'required|in:pending,paid,failed,unpaid,challenge',
         ]);
 
-        if ($validated['status'] === 'cancelled' && $order->status !== 'cancelled') {
-            $order->load('items');
-            foreach ($order->items as $item) {
-                if ($item->product) {
-                    $item->product->increment('stock', $item->quantity);
+        // Validasi kombinasi state supaya tidak korup (stok & pembayaran tidak sinkron).
+        if ($validated['payment_status'] === 'paid' && $validated['status'] === 'cancelled') {
+            return back()->with('error', 'A paid order cannot be cancelled. Use the payment gateway to refund it first.');
+        }
+
+        if ($validated['payment_status'] === 'failed'
+            && in_array($validated['status'], ['pending', 'processing', 'shipped', 'completed'], true)) {
+            return back()->with('error', 'A failed payment requires the order to be cancelled.');
+        }
+
+        // Samakan dengan state machine pembayaran: order yang sudah dibayar langsung diproses.
+        if ($validated['payment_status'] === 'paid' && $validated['status'] === 'pending') {
+            $validated['status'] = 'processing';
+        }
+
+        DB::transaction(function () use ($order, $validated) {
+            $locked = Order::query()->whereKey($order->getKey())->lockForUpdate()->first();
+
+            if (! $locked) {
+                return;
+            }
+
+            $oldStatus = $locked->status;
+            $newStatus = $validated['status'];
+
+            $locked->load('items.product');
+
+            if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+                foreach ($locked->items as $item) {
+                    if ($item->product) {
+                        $item->product->increment('stock', $item->quantity);
+                    }
+                }
+
+                NotificationService::send('order_cancelled', "Order #{$locked->invoice_number} has been cancelled", [
+                    'order_id' => $locked->id,
+                    'invoice' => $locked->invoice_number,
+                ]);
+            } elseif ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
+                // Keluar dari cancelled: potong stok kembali (clamp >= 0) supaya tidak dobel saat dibatalkan lagi.
+                foreach ($locked->items as $item) {
+                    if ($item->product) {
+                        $item->product->stock = max(0, (int) $item->product->stock - (int) $item->quantity);
+                        $item->product->save();
+                    }
                 }
             }
 
-            NotificationService::send('order_cancelled', "Order #{$order->invoice_number} has been cancelled", [
-                'order_id' => $order->id,
-                'invoice' => $order->invoice_number,
-            ]);
-        }
-
-        $order->update($validated);
+            $locked->update($validated);
+        });
 
         LogActivityService::log("Updated order {$order->invoice_number}: status={$validated['status']}, payment={$validated['payment_status']}");
 

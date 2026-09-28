@@ -329,6 +329,24 @@
             </div>
           </div>
 
+          @if ($order->payment_status === 'failed')
+            <div class="card border border-danger rounded-3 shadow-sm">
+              <div class="card-body text-center">
+                <h5 class="text-danger">Payment failed</h5>
+                <p class="mb-3 text-muted">
+                  Your payment could not be confirmed. You can move the items from this order back to
+                  your cart and check out again.
+                </p>
+                <form action="{{ route('customer.orders.reorder', $order->invoice_number) }}" method="POST">
+                  @csrf
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-redo"></i> Order Again
+                  </button>
+                </form>
+              </div>
+            </div>
+          @endif
+
           @if ($order->status === 'pending' && in_array($order->payment_status, ['unpaid', 'pending']))
             <div class="card border rounded-3 shadow-sm">
               <div class="card-body text-end">
@@ -347,7 +365,7 @@
     </section>
   </main>
 
-  @if ($order->payment_method === 'midtrans' && $order->payment_status === 'unpaid' && $order->status === 'pending')
+  @if ($order->payment_method === 'midtrans' && in_array($order->payment_status, ['unpaid', 'pending', 'challenge']) && $order->status === 'pending')
     <script>
       (function() {
         var attempts = 0;
@@ -369,10 +387,10 @@
                 return;
               }
 
-              if (attempts >= 24) clearInterval(timer);
+              if (attempts >= 60) clearInterval(timer);
             })
             .catch(function() {
-              if (attempts >= 24) clearInterval(timer);
+              if (attempts >= 60) clearInterval(timer);
             });
         }, 5000);
       })();

@@ -113,6 +113,10 @@ class CheckoutController extends Controller
                 } elseif ($subtotal < $coupon->minimum_purchase) {
                     session()->forget('coupon');
                     $coupon = null;
+                } elseif (CouponUsage::where('coupon_id', $coupon->id)->where('user_id', Auth::id())->exists()) {
+                    // Kupon hanya boleh dipakai sekali per user.
+                    session()->forget('coupon');
+                    $coupon = null;
                 } else {
                     if ($coupon->discount_type === 'fixed') {
                         $discount = min($coupon->discount_value, $subtotal);

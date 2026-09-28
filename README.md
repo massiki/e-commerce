@@ -49,18 +49,30 @@ Login → Dashboard Analytics → Manage:
 ### Order Status Workflow
 
 ```
-Pending → Paid → Processing → Shipped → Completed
-                                  ↘ Cancelled (any stage)
+Pending → Processing → Shipped → Completed
+   ↘ Cancelled (any pre-paid stage)
 ```
+
+### Payment Lifecycle (`payment_status`)
+
+```
+unpaid → pending → paid (settlement / capture+accept)
+                → failed (deny / cancel / expire — stock restored)
+                → challenge (fraud review — perlu review manual)
+```
+
+Semua transisi dipusatkan di **`PaymentStateService::apply()`** (idempoten, dipakai webhook, sync halaman order, dan reconcile).
 
 ### Payment Flow
 
-1. Customer checks out via **Midtrans Snap** (redirect to Midtrans payment page) or **COD**
-2. Midtrans sends callback POST to `/customer/midtrans/callback` (CSRF exempted)
-3. Server verifies signature (`hash('sha512', order_id + status_code + gross_amount + '.' + server_key)`)
-4. Payment status updated: `unpaid` → `paid` / `failed` / `expired`
-5. On failure: stock restored automatically
-6. Admin notified via in-app notification system
+1. Customer checks out via **Midtrans Snap** (bayar lewat halaman Midtrans) atau **COD** — stok dipotong + order dibuat `pending`/`unpaid`
+2. Midtrans mengirim callback POST ke **`/api/payment/notification`** (signature-verified, throttled 30/menit)
+3. Server verifikasi signature: `hash('sha512', order_id . status_code . gross_amount . server_key)` (tanpa separator)
+4. Status diterapkan lewat `PaymentStateService` — transisi idempoten, tiap notifikasi unik dicatat ke tabel `payments` (dedupe via unique index)
+5. Gagal/expired → stok direstok; ternyata terbayar setelah order dicancel → stok dipotong lagi + notifikasi anomaly
+6. Order unpaid otomatis expire setelah **10 menit** (`MIDTRANS_EXPIRE_MINUTES`) via command `orders:reconcile` (cron)
+7. Halaman order memantau status via polling (60×5 detik) + sync guard 10 detik ke gateway
+8. Deployment: set **Notification URL** di dashboard Midtrans ke `https://domain-anda/api/payment/notification`
 
 ---
 
@@ -76,7 +88,7 @@ Pending → Paid → Processing → Shipped → Completed
 | Brand Management | ✅ | CRUD + activity log |
 | Coupon Management | ✅ | CRUD + activity log |
 | Slider Management | ✅ | CRUD + activity log |
-| Order Management | ✅ | Status workflow, stock restore on cancel |
+| Order Management | ✅ | Status workflow, validasi kombinasi state, stok restore/re-deduct aman (lock + clamp) |
 | Shipping Label | ✅ | PDF download (DomPDF) |
 | Customer List | ✅ | Read-only |
 | Review List | ✅ | Read-only |
@@ -95,28 +107,29 @@ Pending → Paid → Processing → Shipped → Completed
 | Product Search | ✅ | AJAX with debounce 180ms, limit 8 results |
 | Shopping Cart | ✅ | Add, update qty, remove, coupon integration |
 | Wishlist | ✅ | Add, remove |
-| Coupon System | ✅ | Apply/remove, minimum purchase, expiry validation |
-| Checkout | ✅ | Midtrans Snap + COD, stock check with `lockForUpdate` |
-| Order History | ✅ | List + detail, cancel pending orders |
+| Coupon System | ✅ | Apply/remove, minimum purchase, expiry, **sekali pakai per user** (unique index) |
+| Checkout | ✅ | Midtrans Snap + COD, stock check with `lockForUpdate`, idempotency token |
+| Order History | ✅ | List + detail, cancel pending orders, **Order Again** setelah pembayaran gagal |
 | PDF Invoice | ✅ | Download via DomPDF, ownership check |
 | Address Management | ✅ | CRUD with full address fields |
-| Product Review | ✅ | Rating 1-5, comment, triggers notification |
+| Product Review | ✅ | Rating 1-5, comment, hanya untuk order completed yang benar miliknya |
 | Dashboard | ✅ | Stat cards, recent orders, notifications |
 
 ---
 
 ## Kelebihan
 
-- **Role-based authorization** — Middleware `role` memisahkan akses Admin dan Customer dengan redirect otomatis
-- **Midtrans payment integration** — Snap API + callback signature verification (`hash('sha512')`) + stock restore otomatis saat pembayaran gagal
-- **Race condition handling** — Stock check menggunakan `lockForUpdate()` di dalam database transaction
+- **Role-based authorization** — Middleware `role` memisahkan akses Admin dan Customer dengan redirect otomatis (tanpa loop untuk user tanpa role)
+- **Idempotent payment state machine** — `PaymentStateService::apply()` satu-satunya tempat transisi status bayar (webhook/sync/reconcile), dedupe baris `payments`, log & notifikasi mismatch hanya sekali per order
+- **Race condition handling** — Stock check menggunakan `lockForUpdate()` di dalam database transaction (checkout, cancel, webhook, admin update)
 - **Order item snapshots** — Data produk, kategori, brand di-snapshot ke `order_items` saat checkout, histori tetap akurat walau data produk berubah
 - **Admin notification system** — Notifikasi real-time (order, payment, stock, review) dengan AJAX mark-as-read + cleanup otomatis
 - **PDF generation** — Invoice untuk customer + shipping label untuk admin via DomPDF
-- **AJAX product search** — Live search dengan debounce 180ms, tampilkan gambar + nama + harga
+- **AJAX product search** — Live search dengan debounce 180ms, tampilkan gambar + nama + harga (input tidak-string ditolak aman)
 - **Admin dashboard** — 12 stat cards, ApexCharts interaktif (3 periode), best selling products, revenue growth
-- **Coupon system** — Validasi kode, expired, minimum purchase, session-based
+- **Coupon system** — Validasi kode, expired, minimum purchase, session-based, **sekali pakai per user** (dicek di apply + checkout + unique index DB)
 - **Query optimization** — Eager loading, `withCount`, pagination pada semua list
+- **Global flash messages** — Partial `components/flash` di layout customer: success/error/validasi selalu terlihat
 
 ---
 
@@ -124,17 +137,18 @@ Pending → Paid → Processing → Shipped → Completed
 
 | Issue | Severity | Detail |
 |-------|----------|--------|
-| Register tidak assign role | 🔴 Tinggi | User baru daftar mendapat `role_id = null`, perlu di-fix |
-| Coupon tanpa `max_uses` | 🟡 Sedang | Bisa dipakai unlimited tanpa batas |
 | Tidak ada email notification | 🟡 Sedang | Customer tidak mendapat email konfirmasi order |
 | Shipping cost hardcoded 0 | 🟢 Ringan | Belum ada integrasi API ongkir |
 | VAT hardcoded 1000 | 🟢 Ringan | Harusnya configurable / percentage-based |
-| Discount scheduler belum jalan | 🟡 Sedang | Console command + scheduling belum dibuat |
-| Profile routes di-comment | 🟡 Sedang | Profile edit/update/destroy di `routes/web.php` tidak aktif |
-| `onPending` Midtrans redirect ke `#` | 🟢 Ringan | Harusnya redirect ke order show |
+| Discount scheduler belum jalan | 🟡 Sedang | Fitur discount terjadwal belum diimplementasikan |
 | Address tanpa `type` dan `is_default` | 🟢 Ringan | BRIEF menyebutkan tipe Rumah/Kantor/Kos |
 | Activity log masih manual | 🟡 Sedang | Belum pakai event/listener/observer |
 | Belum ada soft delete product | 🟢 Ringan | Data safety |
+| Guest cart/wishlist butuh login | 🟢 Ringan | Halaman `/cart` & `/wishlist` di-`auth` (redirect ke login) |
+
+Issue lama yang **sudah diperbaiki**: register tanpa role, kupon unlimited, profile routes dikomentari,
+`route('dashboard')` 500, IDOR wishlist/review, stok dobel-restore, dead-end pembayaran gagal (kini ada "Order Again"),
+flash message hilang, polling order berhenti terlalu cepat.
 
 ---
 
@@ -210,6 +224,7 @@ Fill these in `.env` (get keys from [Midtrans Dashboard](https://dashboard.midtr
 MERCHANT_ID=your_merchant_id
 CLIENT_KEY=your_client_key
 SERVER_KEY=your_server_key
+# MIDTRANS_EXPIRE_MINUTES=10   (auto-expire order yang belum bayar, dalam menit)
 ```
 
 ### Running Tests
@@ -228,35 +243,36 @@ php vendor/bin/pest
 
 ```
 app/
-├── Console/Commands/        # Artisan commands
+├── Console/Commands/        # orders:reconcile, cleanup commands
 ├── Http/
 │   ├── Controllers/
-│   │   ├── Admin/           # 11 admin controllers
-│   │   ├── Customer/        # 12 customer controllers
+│   │   ├── Admin/           # 12 admin controllers
+│   │   ├── Customer/        # 13 customer controllers
 │   │   └── Auth/            # 9 auth controllers (Breeze)
 │   └── Middleware/          # RoleMiddleware
-├── Models/                  # 20 Eloquent models
+├── Models/                  # 21 Eloquent models
 ├── Providers/               # Service providers
-└── Services/                # NotificationService
+└── Services/                # MidtransService, PaymentStateService,
+                             # NotificationService, LogActivityService
 
 database/
 ├── factories/               # 8 factories
-├── migrations/              # 25 migrations
-└── seeders/                 # DatabaseSeeder
+├── migrations/              # 28 migrations
+└── seeders/                 # DatabaseSeeder (idempotent)
 
 resources/views/
 ├── admin/                   # Admin views (orders, products, etc.)
 ├── customer/                # Customer views (cart, checkout, etc.)
-├── components/              # Blade components
+├── components/              # Blade components (termasuk flash global)
 ├── layouts/                 # App layouts (admin, app, guest)
 └── auth/                    # Auth views (Breeze)
 
 routes/
-├── web.php                  # 93+ named routes
+├── web.php                  # 95+ named routes
 ├── auth.php                 # Auth routes (Breeze)
 └── console.php              # Scheduler
 
-tests/                       # 12 test files (Pest)
+tests/                       # 27 test files (Pest) — 97 tests
 planning/                    # Project documentation (BRIEF, ERD, etc.)
 template/                    # HTML design mockups (reference only)
 ```

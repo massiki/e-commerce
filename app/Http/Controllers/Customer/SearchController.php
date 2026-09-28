@@ -13,6 +13,12 @@ class SearchController extends Controller
     {
         $keyword = $request->input('q');
 
+        if (! is_string($keyword) || trim($keyword) === '') {
+            return response()->json(['products' => []]);
+        }
+
+        $keyword = trim($keyword);
+
         $products = Product::with('images')
             ->where('name', 'like', "%{$keyword}%")
             ->limit(8)

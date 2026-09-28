@@ -18,24 +18,27 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        $adminRole = Role::create(['name' => 'admin']);
-        $customerRole = Role::create(['name' => 'customer']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $customerRole = Role::firstOrCreate(['name' => 'customer']);
 
-        User::create([
+        User::firstOrCreate(['email' => 'admin@gmail.com'], [
             'name' => 'Admin',
-            'email' => 'admin@gmail.com',
             'password' => bcrypt('password'),
             'role_id' => $adminRole->id,
             'phone' => '081234567890',
         ]);
 
-        User::create([
+        User::firstOrCreate(['email' => 'customer@gmail.com'], [
             'name' => 'Customer',
-            'email' => 'customer@gmail.com',
             'password' => bcrypt('password'),
             'role_id' => $customerRole->id,
             'phone' => '081234567891',
         ]);
+
+        // Data demo hanya dibuat sekali supaya seeder aman dijalankan berulang.
+        if (Product::count() > 0) {
+            return;
+        }
 
         $brands = ['Nike', 'Adidas', 'Puma', 'Uniqlo', 'Zara'];
         foreach ($brands as $name) {

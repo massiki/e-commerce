@@ -31,8 +31,8 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products', [CustomerProductController::class, 'index'])->name('products.index');
 Route::get('/products/search', [SearchController::class, 'search'])->name('products.search');
 Route::get('/products/{product:slug}', [CustomerProductController::class, 'show'])->name('products.show');
-Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index')->middleware('auth');
+Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index')->middleware('auth');
 
 // admin
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -60,7 +60,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('activities', [ActivityController::class, 'index'])->name('activities.index');
 
     // orders
-    Route::resource('orders', OrderController::class)->names('orders');
+    Route::resource('orders', OrderController::class)->only(['index', 'show', 'update'])->names('orders');
     Route::get('/orders/{order}/shipping-label', [OrderController::class, 'shippingLabel'])->name('orders.shipping-label');
 
     // sliders
@@ -108,13 +108,14 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     Route::get('/orders/{order:invoice_number}', [CustomerOrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{order:invoice_number}/payment-status', [CustomerOrderController::class, 'paymentStatus'])->name('orders.payment-status');
     Route::post('/orders/{order:invoice_number}/cancel', [CustomerOrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('/orders/{order:invoice_number}/reorder', [CustomerOrderController::class, 'reorder'])->name('orders.reorder');
     Route::get('/orders/{order:invoice_number}/invoice', [InvoiceController::class, 'index'])->name('orders.invoice');
 });
 
-// Route::middleware('auth')->group(function () {
-//     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-//     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-//     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-// });
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
 require __DIR__.'/auth.php';

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Coupon;
+use App\Models\CouponUsage;
 use App\Services\LogActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,6 +26,14 @@ class CouponController extends Controller
 
         if ($coupon->expired_at && $coupon->expired_at->isPast()) {
             return redirect()->back()->with('error', 'Coupon has expired!');
+        }
+
+        $alreadyUsed = CouponUsage::where('coupon_id', $coupon->id)
+            ->where('user_id', Auth::id())
+            ->exists();
+
+        if ($alreadyUsed) {
+            return redirect()->back()->with('error', 'You have already used this coupon.');
         }
 
         $cart = Cart::where('user_id', Auth::id())->first();
