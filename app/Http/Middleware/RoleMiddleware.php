@@ -26,6 +26,11 @@ class RoleMiddleware
             return redirect()->route('admin.dashboard');
         }
 
+        // User tanpa role: jangan redirect (bisa loop) — tolak saja.
+        if ($userRole === null) {
+            abort(403, 'Your account has no role assigned.');
+        }
+
         return redirect()->route('customer.dashboard');
     }
 }

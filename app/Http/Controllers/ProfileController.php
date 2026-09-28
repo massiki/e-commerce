@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\LogActivityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,9 +51,9 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        Auth::logout();
-
         LogActivityService::log("Deleted account for user {$user->email}");
+
+        Auth::logout();
 
         $user->delete();
 

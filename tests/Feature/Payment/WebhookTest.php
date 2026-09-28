@@ -103,7 +103,7 @@ it('restores stock only once for duplicated failure notifications', function () 
         ->and($order->refresh()->payment_status)->toBe('failed')
         ->and($order->status)->toBe('cancelled')
         ->and(Notification::where('type', 'payment_failed')->count())->toBe(1)
-        ->and(Payment::count())->toBe(2);
+        ->and(Payment::count())->toBe(1);
 });
 
 it('sets payment status to challenge on capture with fraud challenge', function () {

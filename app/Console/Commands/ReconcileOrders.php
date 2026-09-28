@@ -22,7 +22,8 @@ class ReconcileOrders extends Command
         $orders = Order::query()
             ->where('payment_method', 'midtrans')
             ->where('status', 'pending')
-            ->whereIn('payment_status', ['unpaid', 'pending', 'challenge'])
+            // 'challenge' sengaja dikecualikan: butuh review manual, jangan di-reconcile selamanya.
+            ->whereIn('payment_status', ['unpaid', 'pending'])
             ->where('created_at', '<=', now()->subMinutes($expireMinutes))
             ->get();
 

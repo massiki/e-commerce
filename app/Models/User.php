@@ -33,6 +33,14 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    /**
+     * Nama route dashboard sesuai role user (admin → admin.dashboard, selain itu → customer.dashboard).
+     */
+    public function dashboardRoute(): string
+    {
+        return $this->role?->name === 'admin' ? 'admin.dashboard' : 'customer.dashboard';
+    }
+
     public function cart(): HasOne
     {
         return $this->hasOne(Cart::class);

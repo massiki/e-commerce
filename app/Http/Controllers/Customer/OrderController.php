@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Customer;
 
 use App\Exceptions\MidtransUnavailableException;
 use App\Http\Controllers\Controller;
+use App\Models\Cart;
 use App\Models\Order;
 use App\Services\LogActivityService;
 use App\Services\MidtransService;
 use App\Services\PaymentStateService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
@@ -46,6 +48,13 @@ class OrderController extends Controller
             return response()->json($payload);
         }
 
+        // Guard: jangan panggil gateway lebih dari sekali per 10 detik per order
+        // (polling multi-tab & jumlah polling yang lebih banyak sekarang).
+        $syncedFlag = "payment-status:synced:{$order->id}";
+        if (Cache::get($syncedFlag)) {
+            return response()->json($payload);
+        }
+
         try {
             $status = $midtrans->getStatus($order->invoice_number);
         } catch (MidtransUnavailableException) {
@@ -58,6 +67,8 @@ class OrderController extends Controller
             $payload['synced'] = true;
             $payload['payment_status'] = $order->payment_status;
             $payload['status'] = $order->status;
+
+            Cache::put($syncedFlag, true, 10);
         }
 
         return response()->json($payload);
@@ -139,5 +150,47 @@ class OrderController extends Controller
 
         return redirect()->route('customer.orders.index')
             ->with('success', 'Order cancelled successfully.');
+    }
+
+    /**
+     * Salin item dari order lama ke cart (untuk order gagal bayar — bayar ulang lewat checkout baru).
+     */
+    public function reorder(Order $order)
+    {
+        abort_if($order->user_id !== Auth::id(), 403);
+
+        $order->load('items.product');
+
+        $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
+        $added = 0;
+
+        foreach ($order->items as $item) {
+            $product = $item->product;
+            $stock = $product ? max(0, (int) $product->stock) : 0;
+
+            if (! $product || $stock === 0) {
+                continue;
+            }
+
+            $wanted = max(1, (int) $item->quantity);
+            $cartItem = $cart->items()->firstOrCreate(
+                ['product_id' => $product->id],
+                ['quantity' => 0],
+            );
+
+            $target = min((int) $cartItem->quantity + $wanted, $stock);
+            $cartItem->update(['quantity' => max(1, $target)]);
+            $added++;
+        }
+
+        if ($added === 0) {
+            return redirect()->route('cart.index')
+                ->with('error', 'None of the items from this order are available right now.');
+        }
+
+        LogActivityService::log("Reordered {$added} item(s) from order {$order->invoice_number}");
+
+        return redirect()->route('cart.index')
+            ->with('success', "{$added} item(s) from this order were added to your cart.");
     }
 }

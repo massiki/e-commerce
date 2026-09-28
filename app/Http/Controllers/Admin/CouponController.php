@@ -31,7 +31,7 @@ class CouponController extends Controller
         $request->validate([
             'code' => 'required|string|max:50|unique:coupons,code',
             'discount_type' => 'required|in:fixed,percent',
-            'discount_value' => 'required|numeric|min:0',
+            'discount_value' => ['required', 'numeric', 'min:0', 'max:'.($request->discount_type === 'percent' ? '100' : '99999999')],
             'minimum_purchase' => 'required|numeric|min:0',
             'expired_at' => 'nullable|date',
         ]);
@@ -59,7 +59,7 @@ class CouponController extends Controller
         $request->validate([
             'code' => 'required|string|max:50|unique:coupons,code,'.$coupon->id,
             'discount_type' => 'required|in:fixed,percent',
-            'discount_value' => 'required|numeric|min:0',
+            'discount_value' => ['required', 'numeric', 'min:0', 'max:'.($request->discount_type === 'percent' ? '100' : '99999999')],
             'minimum_purchase' => 'required|numeric|min:0',
             'expired_at' => 'nullable|date',
         ]);

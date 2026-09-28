@@ -45,3 +45,26 @@ it('returns current state without syncing when midtrans is unreachable', functio
             'synced' => false,
         ]);
 });
+
+it('only calls midtrans once within ten seconds per order', function () {
+    [$order] = midtransOrder();
+    $owner = $order->user;
+    $fake = fakeMidtrans();
+    $fake->statusResponse = midtransStatus([
+        'order_id' => $order->invoice_number,
+        'gross_amount' => '101000.00',
+        'transaction_status' => 'pending',
+    ]);
+
+    $this->actingAs($owner)
+        ->getJson("/customer/orders/{$order->invoice_number}/payment-status")
+        ->assertOk()
+        ->assertJson(['synced' => true, 'payment_status' => 'unpaid']);
+
+    $this->actingAs($owner)
+        ->getJson("/customer/orders/{$order->invoice_number}/payment-status")
+        ->assertOk()
+        ->assertJson(['synced' => false]);
+
+    expect($fake->statusCalls)->toBe(1);
+});

@@ -29,11 +29,11 @@
 
 ## Architecture Notes
 
-- **Admin vs Customer roles** are planned (see `planning/BRIEF.md` and `planning/ERD.md`) but NOT yet implemented — users table only has `name, email, password`. Role-based authorization needs to be built.
-- **View split:** `admin/` for dashboard + CRUD mgmt, `customer/` for product browsing/cart/checkout. Layouts in `resources/views/layouts/`.
-- **Payment gateway:** Midtrans planned (`config/services.php` has no Midtrans key yet).
+- **Admin vs Customer roles** are implemented: `roles` table + `users.role_id`, guarded by `RoleMiddleware` (`role:admin`, `role:customer`). Users also have a required `phone` field at registration.
+- **View split:** `admin/` for dashboard + CRUD mgmt, `customer/` for product browsing/cart/checkout. Layouts in `resources/views/layouts/`. Customer layout includes a global flash partial (`components/flash`).
+- **Payment gateway:** Midtrans Snap implemented (`config/midtrans.php`; env keys `MERCHANT_ID`, `CLIENT_KEY`, `SERVER_KEY`, optional `MIDTRANS_EXPIRE_MINUTES`). All payment status transitions go through the idempotent `App\Services\PaymentStateService::apply()` (webhook, page sync, reconcile). Webhook: `POST /api/payment/notification` (signature-verified, throttled).
 - **Queue:** Default driver is `database`; the `composer run dev` command starts `queue:listen`.
-- **Scheduler:** Laravel Task Scheduler planned for discount scheduling & automated tasks.
+- **Scheduler:** `routes/console.php` — `orders:reconcile` every 5 minutes (expire unpaid + sync), `notifications:clean` & `activity-log:clean` daily.
 
 ## Testing Conventions
 

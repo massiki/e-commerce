@@ -18,7 +18,7 @@ class ReviewController extends Controller
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'required|string|max:1000',
+            'comment' => 'required|string|max:255',
         ]);
 
         $product = Product::findOrFail($validated['product_id']);
@@ -30,10 +30,15 @@ class ReviewController extends Controller
             ->whereDoesntHave('review')
             ->first();
 
+        if (! $orderItem) {
+            return redirect()->back()
+                ->with('error', 'You can only review products from your own completed orders (one review per item).');
+        }
+
         $review = Review::create([
             'user_id' => Auth::id(),
             'product_id' => $product->id,
-            'order_item_id' => $orderItem?->id,
+            'order_item_id' => $orderItem->id,
             'rating' => $validated['rating'],
             'comment' => $validated['comment'],
         ]);

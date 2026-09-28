@@ -41,6 +41,8 @@ class WishlistController extends Controller
 
     public function remove(WishlistItem $wishlistItem)
     {
+        abort_if($wishlistItem->wishlist?->user_id !== Auth::id(), 403);
+
         LogActivityService::log("Removed product {$wishlistItem->product->name} from wishlist");
 
         $wishlistItem->delete();

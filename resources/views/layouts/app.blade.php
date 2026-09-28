@@ -54,10 +54,19 @@
         var url = $form.getAttribute('data-search-url');
         if (!url) return;
 
-        fetch(url + '?q=' + encodeURIComponent(keyword), { method: 'GET' })
-          .then(function(r) { if (r.ok) return r.json(); return Promise.reject(r); })
-          .then(function(data) { _this._updateSearchResult(data, $form); })
-          .catch(function(err) { _this._handleAjaxSearchError(err.message, $form); });
+        fetch(url + '?q=' + encodeURIComponent(keyword), {
+            method: 'GET'
+          })
+          .then(function(r) {
+            if (r.ok) return r.json();
+            return Promise.reject(r);
+          })
+          .then(function(data) {
+            _this._updateSearchResult(data, $form);
+          })
+          .catch(function(err) {
+            _this._handleAjaxSearchError(err.message, $form);
+          });
       }, 180);
 
       SearchProto._updateSearchResult = function(data, $form) {
