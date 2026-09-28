@@ -30,6 +30,7 @@
       </div>
       <form name="checkout-form" method="POST" action="{{ route('customer.checkout.store') }}">
         @csrf
+        <input type="hidden" name="checkout_token" value="{{ session('checkout_token') }}">
         <div class="checkout-form">
           <div class="billing-info__wrapper">
             <div class="row">
@@ -307,6 +308,11 @@
           cancelButtonText: 'Cancel',
         }).then(function(result) {
           if (result.isConfirmed) {
+            var placeOrderBtn = document.getElementById('btn-place-order');
+            if (placeOrderBtn) {
+              placeOrderBtn.disabled = true;
+              placeOrderBtn.textContent = 'Processing...';
+            }
             form.submit();
           }
         });

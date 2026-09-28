@@ -49,16 +49,30 @@
             <span>{{ $order->created_at->format('d/m/Y') }}</span>
           </div>
           <div class="order-info__item">
-            <label>Total</label>
-            <span>Rp{{ number_format($order->total, 0, ',', '.') }}</span>
-          </div>
-          <div class="order-info__item">
             <label>Payment Method</label>
             <span>{{ ucfirst($order->payment_method) }}</span>
           </div>
+          <div class="order-info__item">
+            <label>Payment Status</label>
+            @php
+              $payBadge = match ($order->payment_status) {
+                  'paid' => 'bg-success',
+                  'pending' => 'bg-warning text-dark',
+                  'challenge' => 'bg-warning text-dark',
+                  'failed' => 'bg-danger',
+                  'unpaid' => 'bg-secondary',
+                  default => 'bg-secondary',
+              };
+            @endphp
+            <span class="badge {{ $payBadge }}">{{ ucfirst($order->payment_status) }}</span>
+          </div>
         </div>
 
-        @if ($order->payment_method === 'midtrans' && $order->snap_token && $order->payment_status === 'unpaid')
+        @if (
+            $order->payment_method === 'midtrans' &&
+                $order->snap_token &&
+                $order->payment_status === 'unpaid' &&
+                $order->status === 'pending')
           <div style="text-align: center; margin-top: 30px;">
             <button id="pay-midtrans" class="btn btn-primary" style="padding: 12px 40px; font-size: 16px;">
               Pay Now with Midtrans
@@ -132,28 +146,61 @@
             </table>
           </div>
         </div>
+
+        @if ($order->status === 'pending' && in_array($order->payment_status, ['unpaid', 'pending']))
+          <div style="text-align: center; margin-top: 30px;">
+            <form action="{{ route('customer.orders.cancel', $order->invoice_number) }}" method="POST">
+              @csrf
+              <button type="submit" class="btn btn-outline-danger" style="padding: 12px 40px; font-size: 16px;"
+                onclick="return confirm('Are you sure you want to cancel this order?')">
+                Cancel Order
+              </button>
+            </form>
+          </div>
+        @endif
       </div>
     </section>
   </main>
 
   @if ($order->payment_method === 'midtrans' && $order->snap_token)
-    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}">
-    </script>
+    <script src="{{ config('midtrans.snap_js') }}" data-client-key="{{ config('midtrans.client_key') }}"></script>
     <script>
-      document.getElementById('pay-midtrans').addEventListener('click', function() {
-        snap.pay('{{ $order->snap_token }}', {
-          onSuccess: function(result) {
-            window.location.href = '{{ route('customer.orders.show', $order->invoice_number) }}';
-          },
-          onPending: function(result) {
-            window.location.href = '#';
-          },
-          onError: function(result) {
-            alert('Payment failed. Please try again.');
-          },
-          onClose: function() {}
+      function checkPaymentStatus() {
+        fetch('{{ route('customer.orders.payment-status', $order->invoice_number) }}', {
+            headers: {
+              'Accept': 'application/json'
+            }
+          })
+          .then(function(response) {
+            return response.json();
+          })
+          .then(function(data) {
+            if (data.payment_status === 'paid' || data.payment_status === 'failed') {
+              window.location.href = '{{ route('customer.orders.show', $order->invoice_number) }}';
+            }
+          })
+      }
+
+      var payButton = document.getElementById('pay-midtrans');
+
+      if (payButton && typeof snap !== 'undefined') {
+        payButton.addEventListener('click', function() {
+          snap.pay('{{ $order->snap_token }}', {
+            onSuccess: function(result) {
+              checkPaymentStatus();
+            },
+            onPending: function(result) {
+              //
+            },
+            onError: function(result) {
+              alert('Payment failed. Please try again.');
+            },
+            onClose: function() {
+              //
+            }
+          });
         });
-      });
+      }
     </script>
   @endif
 @endsection

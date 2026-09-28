@@ -200,6 +200,7 @@
                   <option value="pending" {{ $order->payment_status === 'pending' ? 'selected' : '' }}>Pending</option>
                   <option value="paid" {{ $order->payment_status === 'paid' ? 'selected' : '' }}>Paid</option>
                   <option value="failed" {{ $order->payment_status === 'failed' ? 'selected' : '' }}>Failed</option>
+                  <option value="challenge" {{ $order->payment_status === 'challenge' ? 'selected' : '' }}>Challenge</option>
                 </select>
               </div>
               @error('payment_status')

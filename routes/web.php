@@ -19,7 +19,6 @@ use App\Http\Controllers\Customer\CouponController as CustomerCouponController;
 use App\Http\Controllers\Customer\DashboardController as CustomerDashboardController;
 use App\Http\Controllers\Customer\HomeController;
 use App\Http\Controllers\Customer\InvoiceController;
-use App\Http\Controllers\Customer\MidtransController;
 use App\Http\Controllers\Customer\OrderController as CustomerOrderController;
 use App\Http\Controllers\Customer\ProductController as CustomerProductController;
 use App\Http\Controllers\Customer\ReviewController as CustomerReviewController;
@@ -107,12 +106,10 @@ Route::middleware(['auth', 'role:customer'])->prefix('customer')->name('customer
     // orders
     Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order:invoice_number}', [CustomerOrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{order:invoice_number}/payment-status', [CustomerOrderController::class, 'paymentStatus'])->name('orders.payment-status');
     Route::post('/orders/{order:invoice_number}/cancel', [CustomerOrderController::class, 'cancel'])->name('orders.cancel');
     Route::get('/orders/{order:invoice_number}/invoice', [InvoiceController::class, 'index'])->name('orders.invoice');
 });
-
-// midtrans callback — no auth (external POST from Midtrans)
-Route::post('/customer/midtrans/callback', [MidtransController::class, 'handleCallback'])->name('customer.handleCallback');
 
 // Route::middleware('auth')->group(function () {
 //     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

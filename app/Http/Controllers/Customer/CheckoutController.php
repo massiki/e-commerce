@@ -11,14 +11,13 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Services\LogActivityService;
+use App\Services\MidtransService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Midtrans\Config;
-use Midtrans\Snap;
 
 class CheckoutController extends Controller
 {
@@ -63,15 +62,27 @@ class CheckoutController extends Controller
 
         $total = $subtotal - $discount + $vat;
 
+        // Token sekali-pakai untuk mencegah double submit (checkout ganda).
+        session(['checkout_token' => (string) Str::uuid()]);
+
         return view('customer.checkout', compact('cartItems', 'subtotal', 'vat', 'total', 'discount', 'coupon', 'addresses'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, MidtransService $midtrans)
     {
         $validated = $request->validate([
             'address_id' => 'required|exists:addresses,id',
             'payment_method' => 'required|in:midtrans,cod',
         ]);
+
+        $checkoutToken = session('checkout_token');
+        $submittedToken = $request->input('checkout_token');
+
+        if (! is_string($checkoutToken) || ! is_string($submittedToken) || ! hash_equals($checkoutToken, $submittedToken)) {
+            return back()->with('error', 'This checkout session was already submitted. Please review your order again.');
+        }
+
+        session()->forget('checkout_token');
 
         $address = Address::where('user_id', Auth::id())->findOrFail($validated['address_id']);
 
@@ -125,24 +136,51 @@ class CheckoutController extends Controller
 
             return [
                 'id' => (string) $item->product_id,
-                'price' => (int) $price,
+                'price' => (int) round($price),
                 'quantity' => (int) $item->quantity,
                 'name' => $item->product?->name ?? 'Unknown',
             ];
-        })->values()->toArray();
+        })->values()->all();
+
+        // Semua angka dibulatkan ke integer agar jumlah item_details == gross_amount (syarat Midtrans).
+        $subtotal = (int) array_sum(array_map(fn (array $item) => $item['price'] * $item['quantity'], $itemDetails));
+        $discount = (int) round($discount);
+        $vat = (int) round($vat);
+        $total = $subtotal - $discount + $vat;
+
+        if ($discount > 0) {
+            $itemDetails[] = [
+                'id' => 'discount',
+                'price' => -$discount,
+                'quantity' => 1,
+                'name' => 'Discount'.($coupon ? ' ('.$coupon->code.')' : ''),
+            ];
+        }
+
+        if ($vat > 0) {
+            $itemDetails[] = [
+                'id' => 'vat',
+                'price' => $vat,
+                'quantity' => 1,
+                'name' => 'Tax (PPN)',
+            ];
+        }
+
+        $itemsTotal = array_sum(array_map(fn (array $item) => $item['price'] * $item['quantity'], $itemDetails));
+
+        if ($itemsTotal !== $total) {
+            LogActivityService::log('Checkout amount mismatch for cart of user #'.Auth::id().": items={$itemsTotal}, total={$total}");
+
+            return back()->with('error', 'Payment amount mismatch. Please try again.');
+        }
 
         $snapToken = null;
 
         if ($validated['payment_method'] === 'midtrans') {
-            Config::$serverKey = config('midtrans.server_key');
-            Config::$isProduction = app()->environment('production');
-            Config::$isSanitized = true;
-            Config::$is3ds = true;
-
             $transaction = [
                 'transaction_details' => [
                     'order_id' => $invoiceNumber,
-                    'gross_amount' => (int) $total,
+                    'gross_amount' => $total,
                 ],
                 'item_details' => $itemDetails,
                 'customer_details' => [
@@ -160,7 +198,7 @@ class CheckoutController extends Controller
             ];
 
             try {
-                $snapToken = Snap::getSnapToken($transaction);
+                $snapToken = $midtrans->createSnapToken($transaction);
             } catch (\Exception $e) {
                 \Log::error('Midtrans Snap Token error: '.$e->getMessage());
 

@@ -63,6 +63,7 @@
                       $paymentBadge = match ($order->payment_status) {
                           'paid' => 'bg-success',
                           'pending' => 'bg-warning text-dark',
+                          'challenge' => 'bg-warning text-dark',
                           'failed' => 'bg-danger',
                           'unpaid' => 'bg-secondary',
                           default => 'bg-secondary',
