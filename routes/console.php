@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('notifications:clean')->daily();
 Schedule::command('activity-log:clean')->daily();
+Schedule::command('orders:reconcile')->everyFiveMinutes();

@@ -62,6 +62,7 @@
                         <tr>
                           <th>Invoice</th>
                           <th>Status</th>
+                          <th>Payment</th>
                           <th>Total</th>
                           <th>Date</th>
                         </tr>
@@ -86,6 +87,19 @@
                                 };
                               @endphp
                               <span class="badge {{ $badge }}">{{ ucfirst($order->status) }}</span>
+                            </td>
+                            <td>
+                              @php
+                                $payBadge = match ($order->payment_status) {
+                                    'paid' => 'bg-success',
+                                    'pending' => 'bg-warning text-dark',
+                                    'challenge' => 'bg-warning text-dark',
+                                    'failed' => 'bg-danger',
+                                    'unpaid' => 'bg-secondary',
+                                    default => 'bg-secondary',
+                                };
+                              @endphp
+                              <span class="badge {{ $payBadge }}">{{ ucfirst($order->payment_status) }}</span>
                             </td>
                             <td>Rp{{ number_format($order->total, 0, ',', '.') }}</td>
                             <td>{{ $order->created_at->format('d M Y') }}</td>

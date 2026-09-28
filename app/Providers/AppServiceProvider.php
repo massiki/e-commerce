@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Models\Cart;
 use App\Models\Notification;
+use App\Services\MidtransService;
+use App\Services\PaymentStateService;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -12,7 +14,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(MidtransService::class);
+        $this->app->singleton(PaymentStateService::class);
     }
 
     public function boot(): void

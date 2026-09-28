@@ -36,7 +36,7 @@ class OrderController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:pending,processing,shipped,completed,cancelled',
-            'payment_status' => 'required|in:pending,paid,failed,unpaid',
+            'payment_status' => 'required|in:pending,paid,failed,unpaid,challenge',
         ]);
 
         if ($validated['status'] === 'cancelled' && $order->status !== 'cancelled') {
