@@ -1,4 +1,4 @@
-# E-Commerce Complex
+# E-Commerce
 
 Full-featured e-commerce platform built with **Laravel 13**, featuring role-based access for **Admin** and **Customer**, integrated with **Midtrans** payment gateway, coupon system, PDF invoice generation, admin analytics dashboard, and notification system.
 
