@@ -159,8 +159,9 @@
             <div class="swiper-wrapper">
               @foreach ($brands as $brand)
                 <div class="swiper-slide">
-                  <img loading="lazy" class="w-100 h-auto mb-3" src="{{ $brand->image ? asset('storage/' . $brand->image) : asset('image-600x400.png') }}" width="124"
-                    height="124" alt="{{ $brand->name }}" />
+                  <img loading="lazy" class="w-100 h-auto mb-3"
+                    src="{{ $brand->image ? asset('storage/' . $brand->image) : asset('image-600x400.png') }}"
+                    width="124" height="124" alt="{{ $brand->name }}" />
                   <div class="text-center">
                     <a href="#" class="menu-link fw-medium">{{ $brand->name }}</a>
                   </div>
@@ -259,7 +260,7 @@
                   @foreach ($hotDealProducts as $product)
                     <div class="swiper-slide product-card product-card_style3">
                       <div class="pc__img-wrapper">
-                        <a href="{{ route('products.index') }}">
+                        <a href="{{ route('products.show', $product->slug) }}">
                           <img loading="lazy" src="{{ $product->first_image }}" width="258" height="313"
                             alt="{{ $product->name }}" class="pc__img">
                           @if ($product->second_image)
