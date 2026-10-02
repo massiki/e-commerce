@@ -58,10 +58,11 @@ class CartController extends Controller
     public function store(Request $request, Product $product)
     {
         $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
-
+        $quantity = 1;
+        if ($request->quantity) $quantity = $request->quantity;
         $cart->items()->firstOrCreate(
             ['product_id' => $product->id],
-            ['quantity' => $request->quantity],
+            ['quantity' => $quantity],
         );
 
         LogActivityService::log("Added product {$product->name} to cart");
