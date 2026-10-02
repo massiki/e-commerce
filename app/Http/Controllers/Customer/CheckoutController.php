@@ -75,6 +75,7 @@ class CheckoutController extends Controller
             'payment_method' => 'required|in:midtrans,cod',
         ]);
 
+        // Token sekali-pakai: tolak submit ganda (double click / tab lain).
         $checkoutToken = session('checkout_token');
         $submittedToken = $request->input('checkout_token');
 
@@ -93,6 +94,7 @@ class CheckoutController extends Controller
             return back()->with('error', 'Your cart is empty.');
         }
 
+        // Hitung ulang total di server — jangan pernah percaya angka dari client.
         $subtotal = $cartItems->sum(function ($item) {
             $price = $item->product?->has_discount ? $item->product->discount->value : $item->product?->price;
 
@@ -131,7 +133,7 @@ class CheckoutController extends Controller
 
         $total = $subtotal - $discount + $vat;
 
-        $invoiceNumber = 'INV-'.now()->format('Ymd').'-'.strtoupper(Str::random(6));
+        $invoiceNumber = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
 
         $itemDetails = $cartItems->map(function ($item) {
             $price = $item->product?->has_discount
@@ -147,7 +149,7 @@ class CheckoutController extends Controller
         })->values()->all();
 
         // Semua angka dibulatkan ke integer agar jumlah item_details == gross_amount (syarat Midtrans).
-        $subtotal = (int) array_sum(array_map(fn (array $item) => $item['price'] * $item['quantity'], $itemDetails));
+        $subtotal = (int) array_sum(array_map(fn(array $item) => $item['price'] * $item['quantity'], $itemDetails));
         $discount = (int) round($discount);
         $vat = (int) round($vat);
         $total = $subtotal - $discount + $vat;
@@ -157,7 +159,7 @@ class CheckoutController extends Controller
                 'id' => 'discount',
                 'price' => -$discount,
                 'quantity' => 1,
-                'name' => 'Discount'.($coupon ? ' ('.$coupon->code.')' : ''),
+                'name' => 'Discount' . ($coupon ? ' (' . $coupon->code . ')' : ''),
             ];
         }
 
@@ -170,14 +172,15 @@ class CheckoutController extends Controller
             ];
         }
 
-        $itemsTotal = array_sum(array_map(fn (array $item) => $item['price'] * $item['quantity'], $itemDetails));
+        $itemsTotal = array_sum(array_map(fn(array $item) => $item['price'] * $item['quantity'], $itemDetails));
 
         if ($itemsTotal !== $total) {
-            LogActivityService::log('Checkout amount mismatch for cart of user #'.Auth::id().": items={$itemsTotal}, total={$total}");
+            LogActivityService::log('Checkout amount mismatch for cart of user #' . Auth::id() . ": items={$itemsTotal}, total={$total}");
 
             return back()->with('error', 'Payment amount mismatch. Please try again.');
         }
 
+        // Buat token Snap dulu sebelum transaksi DB: jika gateway gagal, cart user tetap utuh.
         $snapToken = null;
 
         if ($validated['payment_method'] === 'midtrans') {
@@ -204,7 +207,7 @@ class CheckoutController extends Controller
             try {
                 $snapToken = $midtrans->createSnapToken($transaction);
             } catch (\Exception $e) {
-                \Log::error('Midtrans Snap Token error: '.$e->getMessage());
+                \Log::error('Midtrans Snap Token error: ' . $e->getMessage());
 
                 return back()->with('error', 'Payment gateway is temporarily unavailable. Please try again later.');
             }
@@ -213,15 +216,17 @@ class CheckoutController extends Controller
         try {
             $order = DB::transaction(function () use ($cartItems, $address, $subtotal, $discount, $coupon, $total, $invoiceNumber, $validated, $snapToken) {
                 foreach ($cartItems as $item) {
-                    if ($item->product) {
-                        $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
-
-                        if (! $product || $product->stock < $item->quantity) {
-                            throw new \Exception("Insufficient stock for {$item->product->name}.");
-                        }
-
-                        $product->decrement('stock', $item->quantity);
+                    if (! $item->product) {
+                        continue;
                     }
+
+                    $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+
+                    if (! $product || $product->stock < $item->quantity) {
+                        throw new \Exception('Insufficient stock for ' . ($item->product?->name ?? 'a product') . '.');
+                    }
+
+                    $product->decrement('stock', $item->quantity);
                 }
 
                 $order = Order::create([
@@ -244,19 +249,20 @@ class CheckoutController extends Controller
                     'status' => 'pending',
                     'snap_token' => $snapToken,
                 ]);
+
                 foreach ($cartItems as $item) {
                     $sourcePath = $item->product?->images->first()?->image;
                     $imageUrl = asset('image-600x400.png');
 
                     if ($sourcePath && Storage::disk('public')->exists($sourcePath)) {
                         $filename = pathinfo($sourcePath, PATHINFO_BASENAME);
-                        $destPath = 'orders/'.$filename;
+                        $destPath = 'orders/' . $filename;
 
                         if (! Storage::disk('public')->exists($destPath)) {
                             Storage::disk('public')->copy($sourcePath, $destPath);
                         }
 
-                        $imageUrl = asset('storage/'.$destPath);
+                        $imageUrl = asset('storage/' . $destPath);
                     }
 
                     OrderItem::create([
@@ -301,24 +307,28 @@ class CheckoutController extends Controller
 
         $order->load('items.product');
         foreach ($order->items as $item) {
-            if ($item->product) {
-                $product = $item->product;
-                if ($product->stock === 0) {
-                    NotificationService::send('out_of_stock', "{$product->name} is out of stock", [
-                        'product_id' => $product->id,
-                        'product_name' => $product->name,
-                    ]);
-                } elseif ($product->stock <= 10) {
-                    NotificationService::send('low_stock', "{$product->name} stock is low ({$product->stock} left)", [
-                        'product_id' => $product->id,
-                        'product_name' => $product->name,
-                        'stock' => $product->stock,
-                    ]);
-                }
+            $product = $item->product;
+
+            if (! $product) {
+                continue;
+            }
+
+            if ($product->stock === 0) {
+                NotificationService::send('out_of_stock', "{$product->name} is out of stock", [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                ]);
+            } elseif ($product->stock <= 10) {
+                NotificationService::send('low_stock', "{$product->name} stock is low ({$product->stock} left)", [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'stock' => $product->stock,
+                ]);
             }
         }
 
-        return redirect()->route('customer.checkout.confirmation', $order->invoice_number);
+        return redirect()->route('customer.checkout.confirmation', $order->invoice_number)
+            ->with('success', 'Your order has been placed successfully.');
     }
 
     public function confirmation(Order $order)

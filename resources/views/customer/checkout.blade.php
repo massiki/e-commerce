@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+  @include('components.flash')
+
   <main class="pt-90">
     <div class="mb-4 pb-4"></div>
     <section class="shop-checkout container">

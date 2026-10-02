@@ -61,7 +61,7 @@ class CartController extends Controller
 
         $cart->items()->firstOrCreate(
             ['product_id' => $product->id],
-            ['quantity' => 1],
+            ['quantity' => $request->quantity],
         );
 
         LogActivityService::log("Added product {$product->name} to cart");
